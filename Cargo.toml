@@ -1,0 +1,37 @@
+[package]
+name = "jc"
+version = "0.1.0"
+edition = "2021"
+authors = ["JC Contributors"]
+description = "Just Compress - A unified compression utility"
+license = "MIT"
+repository = "https://github.com/saimizi/jc"
+
+[dependencies]
+# Command-line argument parsing
+clap = { version = "4.0", features = ["derive"] }
+
+# Parallel processing
+rayon = "1.7"
+
+# Logging
+log = "0.4"
+env_logger = "0.10"
+
+# Date/time for timestamps
+chrono = "0.4"
+
+[dev-dependencies]
+# Testing utilities
+tempfile = "3.8"
+assert_cmd = "2.0"
+predicates = "3.0"
+
+[[bin]]
+name = "jc"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
