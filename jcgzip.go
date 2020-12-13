@@ -20,6 +20,16 @@ type JCGZIPConfig struct {
 func (c JCGZIPConfig) Compress(infile string) (string, error) {
 	var err = error(nil)
 
+	fi, err := os.Stat(infile)
+	if err != nil {
+		return "", err
+	}
+
+	if fi.IsDir() {
+		err = errors.New(infile + " is a directory and can not be compressed by gzip.")
+		return "", err
+	}
+
 	outName, err := c.OutFileName(infile)
 	if err != nil {
 		JCLoggerErr.Print(err)
@@ -58,7 +68,6 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 		buffer.ReadFrom(stdout)
 		buffer.WriteTo(outFileWriter)
 		outFileWriter.Flush()
-		JCLoggerDebug.Print("gorutine fished")
 		finished <- true
 	}()
 
@@ -66,9 +75,7 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 		JCLoggerErr.Print(err)
 	}
 
-	JCLoggerDebug.Print("Wait gorutine ")
 	<-finished
-	JCLoggerDebug.Print("Wait finished")
 
 	return outName, err
 

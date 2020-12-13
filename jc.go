@@ -40,6 +40,8 @@ func JCCompress(c JCConfig, infile string) (string, error) {
 	switch v := c.(type) {
 	case JCGZIPConfig:
 		s, err = v.Compress(infile)
+	case JCTARConfig:
+		s, err = v.Compress(infile)
 	default:
 		err = errors.New("Invalid compresser")
 	}
