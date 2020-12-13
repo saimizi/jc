@@ -1,4 +1,4 @@
-package jclogger
+package jc
 
 import (
 	"log"

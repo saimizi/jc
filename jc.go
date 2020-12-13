@@ -1,13 +1,8 @@
-package main
+package jc
 
 import (
 	"errors"
-	"flag"
-	"jc/jcgzip"
-	"jc/jclogger"
 	"log"
-	"os"
-	"sync"
 )
 
 var (
@@ -18,89 +13,65 @@ var (
 )
 
 func init() {
-	JCLoggerErr = jclogger.NewErrLogger()
-	JCLoggerWarn = jclogger.NewWarnLogger()
-	JCLoggerInfo = jclogger.NewInfoLogger()
-	JCLoggerDebug = jclogger.NewDebugLogger()
+	JCLoggerErr = NewErrLogger()
+	JCLoggerWarn = NewWarnLogger()
+	JCLoggerInfo = NewInfoLogger()
+	JCLoggerDebug = NewDebugLogger()
 }
 
-func checkCompressCmd(cmd string) bool {
-	validCmd := [...]string{
-		"gzip",
-	}
-
-	for _, r := range validCmd {
-		if r == cmd {
-			return true
-		}
-	}
-
-	return false
+type JCConfigInfo struct {
+	level     int
+	timestamp bool
+	collect   bool
+	movetopwd bool
 }
 
-func checkInFiles(files []string) error {
-
-	if files == nil {
-		return errors.New("No target file spcified")
-	}
-
-	for _, f := range files {
-		_, err := os.Stat(f)
-		if err != nil {
-			return errors.New(f + " is not found")
-		}
-
-	}
-
-	return nil
+type JCConfig interface {
+	Compress(infile string) (string, error)
+	EnableTimestamp()
+	DisableTimestamp()
+	SetCompLevel(level int) bool
 }
 
-func main() {
-	//boolptrMoveToPWD := flag.Bool("w", false, "Move the compressed file to current dir.")
-	strptrCompressCMD := flag.String("c", "gzip", "Compress command")
-	intptrCompressLevel := flag.Int("l", 6, "Compress level")
+func JCCompress(c JCConfig, infile string) (string, error) {
+	var s string = ""
+	var err error
 
-	flag.Parse()
-
-	jcCmd := *strptrCompressCMD
-
-	if !checkCompressCmd(jcCmd) {
-		JCLoggerErr.Printf("Compress command %s is invalid\n", jcCmd)
-		os.Exit(1)
-	} else {
-		JCLoggerInfo.Printf("Using %s\n", jcCmd)
+	switch v := c.(type) {
+	case JCGZIPConfig:
+		s, err = v.Compress(infile)
+	default:
+		err = errors.New("Invalid compresser")
 	}
 
-	infiles := flag.Args()
+	return s, err
+}
 
-	err := checkInFiles(infiles)
-	if err != nil {
-		JCLoggerErr.Print(err)
-		os.Exit(1)
+func JCEnableTimestamp(c JCConfig) {
+	switch v := c.(type) {
+	case JCGZIPConfig:
+		v.EnableTimestamp()
 	}
 
-	if *strptrCompressCMD == "gzip" {
-		config, err := jcgzip.New(*intptrCompressLevel)
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
+}
 
-		var wg sync.WaitGroup
-		wg.Add(len(infiles))
-		for _, infile := range infiles {
-
-			f := infile
-			go func() {
-				_, err = config.Compress(f)
-				if err != nil {
-					JCLoggerErr.Print(err)
-				}
-				wg.Done()
-			}()
-		}
-
-		wg.Wait()
+func JCDisableTimestamp(c JCConfig) {
+	switch v := c.(type) {
+	case JCGZIPConfig:
+		v.DisableTimestamp()
 	}
 
+}
+
+func JCSetCompLevel(c JCConfig, level int) bool {
+	var ret bool
+
+	switch v := c.(type) {
+	case JCGZIPConfig:
+		ret = v.SetCompLevel(level)
+	default:
+		ret = false
+	}
+
+	return ret
 }
