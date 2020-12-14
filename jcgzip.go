@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 )
@@ -84,7 +85,13 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 func (c JCGZIPConfig) OutFileName(infile string) (string, error) {
 	var of string
 
-	of = infile + ".gz"
+	ts := JCTimestamp(c.info.timestampOption)
+
+	if ts != "" {
+		of = infile + "_" + ts + ".gz"
+	} else {
+		of = infile + ".gz"
+	}
 
 	return of, nil
 }
@@ -92,18 +99,17 @@ func (c JCGZIPConfig) OutFileName(infile string) (string, error) {
 func (c JCGZIPConfig) DumpConfig() {
 	info := *(c.info)
 	JCLoggerInfo.Printf("JCGZIPConfig.level: %d\n", info.level)
-	JCLoggerInfo.Printf("JCGZIPConfig.timestamp: %v\n", info.timestamp)
+	JCLoggerInfo.Printf("JCGZIPConfig.timestampOption: %d\n", info.timestampOption)
 	JCLoggerInfo.Printf("JCGZIPConfig.collect: %v\n", info.collect)
 }
 
-func (c JCGZIPConfig) EnableTimestamp() {
-	info := c.info
-	(*info).timestamp = true
-}
+func (c JCGZIPConfig) JCSetTimestampOption(option int) error {
+	if option <= 3 && option >= 0 {
+		c.info.timestampOption = option
+		return nil
+	}
 
-func (c JCGZIPConfig) DisableTimestamp() {
-	info := c.info
-	(*info).timestamp = false
+	return errors.New(fmt.Sprintf("Invalid time stamp option %d.", option))
 }
 
 func (c JCGZIPConfig) EnableCollect() {
@@ -140,7 +146,7 @@ func NewGZIPConfig(level int) (JCConfig, error) {
 		return nil, errors.New("Invalid compress level.")
 	}
 
-	info := JCConfigInfo{level: level, timestamp: false, collect: false, movetopwd: false}
+	info := JCConfigInfo{level: level, timestampOption: 0, collect: false, movetopwd: false}
 
 	config := JCGZIPConfig{info: &info}
 

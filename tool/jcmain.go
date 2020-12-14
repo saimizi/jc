@@ -108,7 +108,7 @@ func JCCompressTwo(c1 jc.JCConfig, c2 jc.JCConfig, infiles []string) error {
 	return err
 }
 
-func JCCollectionCompress(infiles []string, level int) error {
+func JCCollectionCompress(c2 jc.JCConfig, infiles []string, level int, timestampOption int) error {
 	tmpdir, err := ioutil.TempDir(".", "jcpkg_")
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func JCCollectionCompress(infiles []string, level int) error {
 
 		}
 
-		c2, err := jc.NewGZIPConfig(level)
+		err = jc.JCSetTimestampOption(c1, timestampOption)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
@@ -161,6 +161,11 @@ func main() {
 	strptrCompressCMD := flag.String("c", "gzip", "Compress command.")
 	intptrCompressLevel := flag.Int("l", 6, "Compress level.")
 	boolptrCollect := flag.Bool("C", false, "Collect all files to create a tarball.")
+	intptrTimestamp := flag.Int("t", 0, "Append time stamp to compressed file\n"+
+		"0: none\n"+
+		"1: Year to day\n"+
+		"2: Year to seconds\n"+
+		"3: Year to nanoseconds\n")
 
 	flag.Parse()
 
@@ -182,7 +187,17 @@ func main() {
 	}
 
 	if *boolptrCollect {
-		err = JCCollectionCompress(infiles, *intptrCompressLevel)
+		var c jc.JCConfig
+
+		if *strptrCompressCMD == "gzip" {
+			c, err = jc.NewGZIPConfig(*intptrCompressLevel)
+			if err != nil {
+				JCLoggerErr.Print(err)
+				os.Exit(1)
+			}
+		}
+
+		err = JCCollectionCompress(c, infiles, *intptrCompressLevel, *intptrTimestamp)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
@@ -192,6 +207,12 @@ func main() {
 
 	if *strptrCompressCMD == "gzip" {
 		c, err := jc.NewGZIPConfig(*intptrCompressLevel)
+		if err != nil {
+			JCLoggerErr.Print(err)
+			os.Exit(1)
+		}
+
+		err = jc.JCSetTimestampOption(c, *intptrTimestamp)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
@@ -208,6 +229,12 @@ func main() {
 
 	if *strptrCompressCMD == "tar" {
 		c, err := jc.NewTARConfig()
+		if err != nil {
+			JCLoggerErr.Print(err)
+			os.Exit(1)
+		}
+
+		err = jc.JCSetTimestampOption(c, *intptrTimestamp)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
@@ -230,6 +257,12 @@ func main() {
 		}
 
 		c2, err := jc.NewGZIPConfig(*intptrCompressLevel)
+		if err != nil {
+			JCLoggerErr.Print(err)
+			os.Exit(1)
+		}
+
+		err = jc.JCSetTimestampOption(c1, *intptrTimestamp)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)

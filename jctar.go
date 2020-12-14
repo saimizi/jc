@@ -1,6 +1,8 @@
 package jc
 
 import (
+	"errors"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 )
@@ -43,7 +45,12 @@ func (c JCTARConfig) OutFileName(infile string) (string, error) {
 		infile = infile[:n]
 	}
 
-	of = infile + ".tar"
+	ts := JCTimestamp(c.info.timestampOption)
+	if ts != "" {
+		of = infile + "_" + ts + ".tar"
+	} else {
+		of = infile + ".tar"
+	}
 
 	return of, nil
 }
@@ -62,18 +69,17 @@ func (c JCTARConfig) InFile(infile string) (string, string) {
 func (c JCTARConfig) DumpConfig() {
 	info := *(c.info)
 	JCLoggerInfo.Printf("JCTARConfig.level: %d\n", info.level)
-	JCLoggerInfo.Printf("JCTARConfig.timestamp: %v\n", info.timestamp)
+	JCLoggerInfo.Printf("JCTARConfig.timestampOption: %d\n", info.timestampOption)
 	JCLoggerInfo.Printf("JCTARConfig.collect: %v\n", info.collect)
 }
 
-func (c JCTARConfig) EnableTimestamp() {
-	info := c.info
-	(*info).timestamp = true
-}
+func (c JCTARConfig) JCSetTimestampOption(option int) error {
+	if option <= 3 && option >= 0 {
+		c.info.timestampOption = option
+		return nil
+	}
 
-func (c JCTARConfig) DisableTimestamp() {
-	info := c.info
-	(*info).timestamp = false
+	return errors.New(fmt.Sprintf("Invalid time stamp option %d.", option))
 }
 
 func (c JCTARConfig) EnableCollect() {

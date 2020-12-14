@@ -2,7 +2,9 @@ package jc
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"time"
 )
 
 var (
@@ -20,16 +22,15 @@ func init() {
 }
 
 type JCConfigInfo struct {
-	level     int
-	timestamp bool
-	collect   bool
-	movetopwd bool
+	level           int
+	timestampOption int
+	collect         bool
+	movetopwd       bool
 }
 
 type JCConfig interface {
 	Compress(infile string) (string, error)
-	EnableTimestamp()
-	DisableTimestamp()
+	JCSetTimestampOption(option int) error
 	SetCompLevel(level int) bool
 }
 
@@ -49,19 +50,15 @@ func JCCompress(c JCConfig, infile string) (string, error) {
 	return s, err
 }
 
-func JCEnableTimestamp(c JCConfig) {
+func JCSetTimestampOption(c JCConfig, option int) error {
 	switch v := c.(type) {
 	case JCGZIPConfig:
-		v.EnableTimestamp()
+		return v.JCSetTimestampOption(option)
+	case JCTARConfig:
+		return v.JCSetTimestampOption(option)
 	}
 
-}
-
-func JCDisableTimestamp(c JCConfig) {
-	switch v := c.(type) {
-	case JCGZIPConfig:
-		v.DisableTimestamp()
-	}
+	return errors.New("UnKnown JC config")
 
 }
 
@@ -76,4 +73,35 @@ func JCSetCompLevel(c JCConfig, level int) bool {
 	}
 
 	return ret
+}
+
+func JCTimestamp(option int) string {
+	t := time.Now()
+
+	switch option {
+	case 1:
+		return fmt.Sprintf("%d%d%d",
+			t.Year(),
+			t.Month(),
+			t.Day())
+	case 2:
+		return fmt.Sprintf("%d%d%d_%d%d%d",
+			t.Year(),
+			t.Month(),
+			t.Day(),
+			t.Hour(),
+			t.Minute(),
+			t.Second())
+	case 3:
+		return fmt.Sprintf("%d%d%d_%d%d%d_%d",
+			t.Year(),
+			t.Month(),
+			t.Day(),
+			t.Hour(),
+			t.Minute(),
+			t.Second(),
+			t.Nanosecond())
+	}
+
+	return ""
 }
