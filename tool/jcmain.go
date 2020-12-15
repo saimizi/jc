@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"jc"
 	"log"
@@ -42,6 +43,10 @@ func checkCompressCmd(cmd string) bool {
 }
 
 func checkInFiles(files []string) error {
+
+	if len(files) == 0 {
+		return fmt.Errorf("No input files.")
+	}
 
 	if files == nil {
 		return errors.New("No target file spcified")
@@ -108,7 +113,20 @@ func JCCompressTwo(c1 jc.JCConfig, c2 jc.JCConfig, infiles []string) error {
 	return err
 }
 
-func JCCollectionCompress(c2 jc.JCConfig, infiles []string, level int, timestampOption int) error {
+func JCCollectionCompress(c2 jc.JCConfig,
+	pkgname string,
+	infiles []string,
+	level int,
+	timestampOption int) error {
+
+	if pkgname == "" {
+		return fmt.Errorf("Pakcage name is null.")
+	}
+
+	if len(infiles) == 0 {
+		return fmt.Errorf("No input files.")
+	}
+
 	tmpdir, err := ioutil.TempDir(".", "jcpkg_")
 	if err != nil {
 		return err
@@ -121,18 +139,23 @@ func JCCollectionCompress(c2 jc.JCConfig, infiles []string, level int, timestamp
 		}
 	}()
 
+	pkgpath := tmpdir + "/" + pkgname
+	err = os.Mkdir(pkgpath, 0755)
+	if err != nil {
+		return err
+	}
+
 	for _, tp := range infiles {
-		cmd := exec.Command("cp", "-r", tp, tmpdir)
+		cmd := exec.Command("cp", "-r", tp, pkgpath+"/")
 		err = cmd.Run()
 		if err != nil {
 			return err
 		}
 	}
 
-	JCLoggerDebug.Printf("%s\n", tmpdir)
-	t := []string{tmpdir}
-
+	var f1, f2 string
 	for {
+
 		c1, err := jc.NewTARConfig()
 		if err != nil {
 			JCLoggerErr.Print(err)
@@ -145,13 +168,25 @@ func JCCollectionCompress(c2 jc.JCConfig, infiles []string, level int, timestamp
 			os.Exit(1)
 		}
 
-		err = JCCompressTwo(c1, c2, t)
-		if err != nil {
+		f1, err = jc.JCCompress(c1, pkgpath)
+		if err == nil {
+			f2, err = jc.JCCompress(c2, f1)
+			if err != nil {
+				JCLoggerErr.Print(err)
+			}
+			os.Remove(f1)
+
+		} else {
 			JCLoggerErr.Print(err)
-			os.Exit(1)
 		}
 
 		break
+	}
+
+	cmd := exec.Command("mv", f2, ".")
+	err = cmd.Run()
+	if err != nil {
+		return err
 	}
 	return err
 }
@@ -160,7 +195,7 @@ func main() {
 	//boolptrMoveToPWD := flag.Bool("w", false, "Move the compressed file to current dir.")
 	strptrCompressCMD := flag.String("c", "gzip", "Compress command.")
 	intptrCompressLevel := flag.Int("l", 6, "Compress level.")
-	boolptrCollect := flag.Bool("C", false, "Collect all files to create a tarball.")
+	strptrCollect := flag.String("C", "", "Collect all files to create a tarball.")
 	intptrTimestamp := flag.Int("t", 0, "Append time stamp to compressed file\n"+
 		"0: none\n"+
 		"1: Year to day\n"+
@@ -186,7 +221,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *boolptrCollect {
+	if *strptrCollect != "" {
 		var c jc.JCConfig
 
 		if *strptrCompressCMD == "gzip" {
@@ -197,7 +232,11 @@ func main() {
 			}
 		}
 
-		err = JCCollectionCompress(c, infiles, *intptrCompressLevel, *intptrTimestamp)
+		err = JCCollectionCompress(c,
+			*strptrCollect,
+			infiles,
+			*intptrCompressLevel,
+			*intptrTimestamp)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)

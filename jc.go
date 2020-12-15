@@ -24,7 +24,6 @@ func init() {
 type JCConfigInfo struct {
 	level           int
 	timestampOption int
-	collect         bool
 	movetopwd       bool
 }
 

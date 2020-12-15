@@ -70,7 +70,6 @@ func (c JCTARConfig) DumpConfig() {
 	info := *(c.info)
 	JCLoggerInfo.Printf("JCTARConfig.level: %d\n", info.level)
 	JCLoggerInfo.Printf("JCTARConfig.timestampOption: %d\n", info.timestampOption)
-	JCLoggerInfo.Printf("JCTARConfig.collect: %v\n", info.collect)
 }
 
 func (c JCTARConfig) JCSetTimestampOption(option int) error {
@@ -80,16 +79,6 @@ func (c JCTARConfig) JCSetTimestampOption(option int) error {
 	}
 
 	return errors.New(fmt.Sprintf("Invalid time stamp option %d.", option))
-}
-
-func (c JCTARConfig) EnableCollect() {
-	info := c.info
-	(*info).collect = true
-}
-
-func (c JCTARConfig) DisableCollect() {
-	info := c.info
-	(*info).collect = false
 }
 
 func (c JCTARConfig) SetCompLevel(level int) bool {
