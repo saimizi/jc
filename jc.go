@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"time"
 )
 
@@ -24,13 +25,14 @@ func init() {
 type JCConfigInfo struct {
 	level           int
 	timestampOption int
-	movetopwd       bool
+	moveto          string
 }
 
 type JCConfig interface {
 	Compress(infile string) (string, error)
-	JCSetTimestampOption(option int) error
+	SetTimestampOption(option int) error
 	SetCompLevel(level int) bool
+	SetMoveTo(to string) error
 }
 
 func JCCompress(c JCConfig, infile string) (string, error) {
@@ -52,9 +54,9 @@ func JCCompress(c JCConfig, infile string) (string, error) {
 func JCSetTimestampOption(c JCConfig, option int) error {
 	switch v := c.(type) {
 	case JCGZIPConfig:
-		return v.JCSetTimestampOption(option)
+		return v.SetTimestampOption(option)
 	case JCTARConfig:
-		return v.JCSetTimestampOption(option)
+		return v.SetTimestampOption(option)
 	}
 
 	return errors.New("UnKnown JC config")
@@ -72,6 +74,21 @@ func JCSetCompLevel(c JCConfig, level int) bool {
 	}
 
 	return ret
+}
+
+func JCSetMoveTo(c JCConfig, to string) error {
+	var err error
+
+	switch v := c.(type) {
+	case JCGZIPConfig:
+		err = v.SetMoveTo(to)
+	case JCTARConfig:
+		err = v.SetMoveTo(to)
+	default:
+		err = nil
+	}
+
+	return err
 }
 
 func JCTimestamp(option int) string {
@@ -103,4 +120,24 @@ func JCTimestamp(option int) string {
 	}
 
 	return ""
+}
+
+func JCCheckMoveTo(to string) error {
+
+	JCLoggerDebug.Printf("MoveTo %s\n", to)
+
+	if to == "" {
+		return fmt.Errorf("MoveTo Directory is not specified.")
+	}
+
+	fi, err := os.Stat(to)
+	if err != nil {
+		return fmt.Errorf("MoveTo does not exist.")
+	}
+
+	if !fi.IsDir() {
+		return fmt.Errorf("MoveTo %s is not a directory.", to)
+	}
+
+	return nil
 }

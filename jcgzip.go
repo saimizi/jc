@@ -78,6 +78,12 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 
 	<-finished
 
+	if c.info.moveto != "" {
+		JCLoggerDebug.Printf("Move %s to %s.", outName, c.info.moveto)
+		cmd := exec.Command("mv", outName, c.info.moveto)
+		err = cmd.Run()
+	}
+
 	return outName, err
 
 }
@@ -97,12 +103,12 @@ func (c JCGZIPConfig) OutFileName(infile string) (string, error) {
 }
 
 func (c JCGZIPConfig) DumpConfig() {
-	info := *(c.info)
-	JCLoggerInfo.Printf("JCGZIPConfig.level: %d\n", info.level)
-	JCLoggerInfo.Printf("JCGZIPConfig.timestampOption: %d\n", info.timestampOption)
+	JCLoggerInfo.Printf("JCGZIPConfig.level: %d\n", c.info.level)
+	JCLoggerInfo.Printf("JCGZIPConfig.timestampOption: %d\n", c.info.timestampOption)
+	JCLoggerInfo.Printf("JCGZIPConfig.MoveTo: %s\n", c.info.moveto)
 }
 
-func (c JCGZIPConfig) JCSetTimestampOption(option int) error {
+func (c JCGZIPConfig) SetTimestampOption(option int) error {
 	if option <= 3 && option >= 0 {
 		c.info.timestampOption = option
 		return nil
@@ -130,12 +136,22 @@ func (c JCGZIPConfig) SetCompLevel(level int) bool {
 	return ret
 }
 
+func (c JCGZIPConfig) SetMoveTo(to string) error {
+
+	err := JCCheckMoveTo(to)
+	if err == nil {
+		c.info.moveto = to
+	}
+
+	return err
+}
+
 func NewGZIPConfig(level int) (JCConfig, error) {
 	if !vaildCompLevel(level) {
 		return nil, errors.New("Invalid compress level.")
 	}
 
-	info := JCConfigInfo{level: level, timestampOption: 0, movetopwd: false}
+	info := JCConfigInfo{level: level, timestampOption: 0, moveto: ""}
 	config := JCGZIPConfig{info: &info}
 
 	var j JCConfig = config

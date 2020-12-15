@@ -34,6 +34,12 @@ func (c JCTARConfig) Compress(infile string) (string, error) {
 
 	err = cmd.Run()
 
+	if c.info.moveto != "" {
+		JCLoggerDebug.Printf("Move %s to %s.", outName, c.info.moveto)
+		cmd := exec.Command("mv", outName, c.info.moveto)
+		err = cmd.Run()
+	}
+
 	return outName, err
 }
 
@@ -67,12 +73,12 @@ func (c JCTARConfig) InFile(infile string) (string, string) {
 }
 
 func (c JCTARConfig) DumpConfig() {
-	info := *(c.info)
-	JCLoggerInfo.Printf("JCTARConfig.level: %d\n", info.level)
-	JCLoggerInfo.Printf("JCTARConfig.timestampOption: %d\n", info.timestampOption)
+	JCLoggerInfo.Printf("JCTARConfig.level: %d\n", c.info.level)
+	JCLoggerInfo.Printf("JCTARConfig.timestampOption: %d\n", c.info.timestampOption)
+	JCLoggerInfo.Printf("JCGZIPConfig.MoveTo: %s\n", c.info.moveto)
 }
 
-func (c JCTARConfig) JCSetTimestampOption(option int) error {
+func (c JCTARConfig) SetTimestampOption(option int) error {
 	if option <= 3 && option >= 0 {
 		c.info.timestampOption = option
 		return nil
@@ -83,6 +89,16 @@ func (c JCTARConfig) JCSetTimestampOption(option int) error {
 
 func (c JCTARConfig) SetCompLevel(level int) bool {
 	return true
+}
+
+func (c JCTARConfig) SetMoveTo(to string) error {
+
+	err := JCCheckMoveTo(to)
+	if err == nil {
+		c.info.moveto = to
+	}
+
+	return err
 }
 
 func NewTARConfig() (JCConfig, error) {

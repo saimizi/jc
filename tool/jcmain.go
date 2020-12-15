@@ -63,6 +63,17 @@ func checkInFiles(files []string) error {
 	return nil
 }
 
+func checkMoveTo(to string) (string, error) {
+
+	err := jc.JCCheckMoveTo(to)
+
+	if err == nil {
+		return to, nil
+	}
+
+	return "", err
+}
+
 func JCCompressOne(c jc.JCConfig, infiles []string) error {
 	var err error
 	var wg sync.WaitGroup
@@ -121,6 +132,11 @@ func JCCollectionCompress(c2 jc.JCConfig,
 
 	if pkgname == "" {
 		return fmt.Errorf("Pakcage name is null.")
+	}
+
+	_, err := os.Stat(pkgname)
+	if err == nil {
+		return fmt.Errorf(" %s exists and can not be used as pakcage name.", pkgname)
 	}
 
 	if len(infiles) == 0 {
@@ -192,8 +208,8 @@ func JCCollectionCompress(c2 jc.JCConfig,
 }
 
 func main() {
-	//boolptrMoveToPWD := flag.Bool("w", false, "Move the compressed file to current dir.")
-	strptrCompressCMD := flag.String("c", "gzip", "Compress command.")
+	strptrMoveTo := flag.String("m", "", "Move the compressed file to specified dir.")
+	strptrCompressCMD := flag.String("c", "tgz", "Compress command.")
 	intptrCompressLevel := flag.Int("l", 6, "Compress level.")
 	strptrCollect := flag.String("C", "", "Collect all files to create a tarball.")
 	intptrTimestamp := flag.Int("t", 0, "Append time stamp to compressed file\n"+
@@ -257,6 +273,15 @@ func main() {
 			os.Exit(1)
 		}
 
+		to, err := checkMoveTo(*strptrMoveTo)
+		if err == nil {
+			err = jc.JCSetMoveTo(c, to)
+			if err != nil {
+				JCLoggerErr.Print(err)
+				os.Exit(1)
+			}
+		}
+
 		err = JCCompressOne(c, infiles)
 		if err != nil {
 			JCLoggerErr.Print(err)
@@ -277,6 +302,15 @@ func main() {
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
+		}
+
+		to, err := checkMoveTo(*strptrMoveTo)
+		if err == nil {
+			err = jc.JCSetMoveTo(c, to)
+			if err != nil {
+				JCLoggerErr.Print(err)
+				os.Exit(1)
+			}
 		}
 
 		err = JCCompressOne(c, infiles)
@@ -305,6 +339,15 @@ func main() {
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
+		}
+
+		to, err := checkMoveTo(*strptrMoveTo)
+		if err == nil {
+			err = jc.JCSetMoveTo(c2, to)
+			if err != nil {
+				JCLoggerErr.Print(err)
+				os.Exit(1)
+			}
 		}
 
 		err = JCCompressTwo(c1, c2, infiles)
