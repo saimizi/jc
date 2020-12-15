@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 )
 
@@ -42,25 +43,40 @@ func checkCompressCmd(cmd string) bool {
 	return false
 }
 
-func checkInFiles(files []string) error {
+func checkInFiles(files []string) ([]string, bool, error) {
+	var haveSameName bool
 
 	if len(files) == 0 {
-		return fmt.Errorf("No input files.")
+		return nil, haveSameName, fmt.Errorf("No input files.")
 	}
 
 	if files == nil {
-		return errors.New("No target file spcified")
+		return nil, haveSameName, errors.New("No target file spcified")
 	}
 
+	m := make(map[string]bool)
+	n := make(map[string]bool)
 	for _, f := range files {
 		_, err := os.Stat(f)
 		if err != nil {
-			return errors.New(f + " is not found")
+			return nil, haveSameName, errors.New(f + " is not found")
+		} else {
+			m[f] = true
+			base := filepath.Base(f)
+			n[base] = true
 		}
-
 	}
 
-	return nil
+	var nfiles []string
+	for f, _ := range m {
+		nfiles = append(nfiles, f)
+	}
+
+	if len(n) > 0 {
+		haveSameName = true
+	}
+
+	return nfiles, haveSameName, nil
 }
 
 func checkMoveTo(to string) (string, error) {
@@ -216,7 +232,7 @@ func main() {
 		"0: none\n"+
 		"1: Year to day\n"+
 		"2: Year to seconds\n"+
-		"3: Year to nanoseconds\n")
+		"3: nanoseconds\n")
 
 	flag.Parse()
 
@@ -231,7 +247,7 @@ func main() {
 
 	infiles := flag.Args()
 
-	err := checkInFiles(infiles)
+	infiles, haveSameName, err := checkInFiles(infiles)
 	if err != nil {
 		JCLoggerErr.Print(err)
 		os.Exit(1)
@@ -239,6 +255,11 @@ func main() {
 
 	if *strptrCollect != "" {
 		var c jc.JCConfig
+
+		if haveSameName {
+			JCLoggerErr.Print("Can not collect files that have the same name.")
+			os.Exit(1)
+		}
 
 		if *strptrCompressCMD == "gzip" {
 			c, err = jc.NewGZIPConfig(*intptrCompressLevel)
@@ -275,6 +296,11 @@ func main() {
 
 		to, err := checkMoveTo(*strptrMoveTo)
 		if err == nil {
+			if haveSameName && (*intptrTimestamp < 3) {
+				JCLoggerErr.Print("Can not move compressed files that have the same name.")
+				os.Exit(1)
+			}
+
 			err = jc.JCSetMoveTo(c, to)
 			if err != nil {
 				JCLoggerErr.Print(err)
@@ -306,6 +332,11 @@ func main() {
 
 		to, err := checkMoveTo(*strptrMoveTo)
 		if err == nil {
+			if haveSameName && (*intptrTimestamp < 3) {
+				JCLoggerErr.Print("Can not move compressed files that have the same name.")
+				os.Exit(1)
+			}
+
 			err = jc.JCSetMoveTo(c, to)
 			if err != nil {
 				JCLoggerErr.Print(err)
@@ -343,6 +374,11 @@ func main() {
 
 		to, err := checkMoveTo(*strptrMoveTo)
 		if err == nil {
+			if haveSameName && (*intptrTimestamp < 3) {
+				JCLoggerErr.Print("Can not move compressed files that have the same name.")
+				os.Exit(1)
+			}
+
 			err = jc.JCSetMoveTo(c2, to)
 			if err != nil {
 				JCLoggerErr.Print(err)

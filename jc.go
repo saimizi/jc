@@ -109,13 +109,7 @@ func JCTimestamp(option int) string {
 			t.Minute(),
 			t.Second())
 	case 3:
-		return fmt.Sprintf("%d%d%d_%d%d%d_%d",
-			t.Year(),
-			t.Month(),
-			t.Day(),
-			t.Hour(),
-			t.Minute(),
-			t.Second(),
+		return fmt.Sprintf("%d",
 			t.Nanosecond())
 	}
 
