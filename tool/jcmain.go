@@ -55,7 +55,7 @@ func checkInFiles(files []string) ([]string, bool, error) {
 	}
 
 	m := make(map[string]bool)
-	n := make(map[string]bool)
+	n := make(map[string]int)
 	for _, f := range files {
 		_, err := os.Stat(f)
 		if err != nil {
@@ -63,7 +63,9 @@ func checkInFiles(files []string) ([]string, bool, error) {
 		} else {
 			m[f] = true
 			base := filepath.Base(f)
-			n[base] = true
+			n[base]++
+
+			JCLoggerDebug.Printf("f: %s base:%s\n", f, base)
 		}
 	}
 
@@ -72,8 +74,11 @@ func checkInFiles(files []string) ([]string, bool, error) {
 		nfiles = append(nfiles, f)
 	}
 
-	if len(n) > 0 {
-		haveSameName = true
+	for f, count := range n {
+		if count > 1 {
+			haveSameName = true
+			JCLoggerDebug.Printf("%d files have name %s\n", count, f)
+		}
 	}
 
 	return nfiles, haveSameName, nil
