@@ -86,6 +86,11 @@ func checkInFiles(files []string) ([]string, bool, error) {
 
 func checkMoveTo(to string) (string, error) {
 
+	n := len(to) - 1
+	if n >= 0 && to[n] == '/' {
+		to = to[:n]
+	}
+
 	err := jc.JCCheckMoveTo(to)
 
 	if err == nil {
@@ -148,8 +153,9 @@ func JCCompressTwo(c1 jc.JCConfig, c2 jc.JCConfig, infiles []string) error {
 func JCCollectionCompress(c2 jc.JCConfig,
 	pkgname string,
 	infiles []string,
-	level int,
-	timestampOption int) error {
+	moveto string,
+	timestampOption int,
+	noParentDir bool) error {
 
 	if pkgname == "" {
 		return fmt.Errorf("Pakcage name is null.")
@@ -184,7 +190,7 @@ func JCCollectionCompress(c2 jc.JCConfig,
 
 	for _, tp := range infiles {
 		cmd := exec.Command("cp", "-r", tp, pkgpath+"/")
-		err = cmd.Run()
+		err = jc.JCRunCmd(cmd)
 		if err != nil {
 			return err
 		}
@@ -192,8 +198,9 @@ func JCCollectionCompress(c2 jc.JCConfig,
 
 	var f1, f2 string
 	for {
+		var c1 jc.JCConfig
 
-		c1, err := jc.NewTARConfig()
+		c1, err = jc.NewTARConfig()
 		if err != nil {
 			JCLoggerErr.Print(err)
 
@@ -205,34 +212,56 @@ func JCCollectionCompress(c2 jc.JCConfig,
 			os.Exit(1)
 		}
 
-		f1, err = jc.JCCompress(c1, pkgpath)
-		if err == nil {
+		if noParentDir == true {
+			f1, err = jc.JCCompressMultiFiles(c1, pkgname, pkgpath)
+			if err != nil {
+				JCLoggerErr.Print(err)
+				break
+			}
+		} else {
+			f1, err = jc.JCCompress(c1, pkgpath)
+			if err != nil {
+				JCLoggerErr.Print(err)
+				break
+			}
+		}
+
+		JCLoggerDebug.Printf("c2: %v\n", c2)
+		if c2 != nil {
 			f2, err = jc.JCCompress(c2, f1)
 			if err != nil {
 				JCLoggerErr.Print(err)
 			}
 			os.Remove(f1)
-
 		} else {
-			JCLoggerErr.Print(err)
+			f2 = f1
+		}
+
+		if moveto == "" {
+			JCLoggerDebug.Printf("mv %s to current directory \n", f2)
+			cmd := exec.Command("mv", f2, ".")
+			err = jc.JCRunCmd(cmd)
+		} else {
+			JCLoggerDebug.Printf("mv %s to %s.\n", f2, moveto)
+			cmd := exec.Command("mv", f2, moveto)
+			_, errbuf, tmperr := jc.JCRunCmdBuffer(cmd)
+			if tmperr != nil {
+				err = fmt.Errorf("%s", errbuf)
+			}
 		}
 
 		break
 	}
 
-	cmd := exec.Command("mv", f2, ".")
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
 	return err
 }
 
 func main() {
-	strptrMoveTo := flag.String("m", "", "Move the compressed file to specified dir.")
+	strptrMoveTo := flag.String("C", "", "Move the compressed file to specified dir.")
 	strptrCompressCMD := flag.String("c", "tgz", "Compress command.")
 	intptrCompressLevel := flag.Int("l", 6, "Compress level.")
-	strptrCollect := flag.String("C", "", "Collect all files to create a tarball.")
+	strptrCollect := flag.String("a", "", "Collect all files to create a tarball.")
+	strptrCollectNoParentDir := flag.String("A", "", "Collect all files to create a tarball.")
 	intptrTimestamp := flag.Int("t", 0, "Append time stamp to compressed file\n"+
 		"0: none\n"+
 		"1: Year to day\n"+
@@ -240,7 +269,7 @@ func main() {
 		"3: nanoseconds\n")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: jc [Options] file1 file2 ...\n")
+		fmt.Fprintf(os.Stderr, "Usage: jc [Options] <File|Dir> [File|Dir]...\n")
 		fmt.Fprintf(os.Stderr, "\nAvaible options:\n")
 		flag.PrintDefaults()
 	}
@@ -251,7 +280,7 @@ func main() {
 
 	infiles, haveSameName, err := checkInFiles(infiles)
 	if err != nil {
-		JCLoggerErr.Print(err)
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -261,10 +290,10 @@ func main() {
 		JCLoggerErr.Printf("Compress command %s is invalid\n", jcCmd)
 		os.Exit(1)
 	} else {
-		JCLoggerInfo.Printf("Using %s\n", jcCmd)
+		JCLoggerDebug.Printf("Using %s\n", jcCmd)
 	}
 
-	if *strptrCollect != "" {
+	if *strptrCollect != "" || *strptrCollectNoParentDir != "" {
 		var c jc.JCConfig
 
 		if haveSameName {
@@ -272,7 +301,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		if *strptrCompressCMD == "gzip" {
+		if (*strptrCompressCMD == "gzip") || (*strptrCompressCMD == "tgz") {
 			c, err = jc.NewGZIPConfig(*intptrCompressLevel)
 			if err != nil {
 				JCLoggerErr.Print(err)
@@ -280,11 +309,23 @@ func main() {
 			}
 		}
 
+		var noParentDir bool
+		var pkgname string
+
+		if *strptrCollectNoParentDir != "" {
+			noParentDir = true
+			pkgname = *strptrCollectNoParentDir
+		} else {
+			pkgname = *strptrCollect
+		}
+
 		err = JCCollectionCompress(c,
-			*strptrCollect,
+			pkgname,
 			infiles,
-			*intptrCompressLevel,
-			*intptrTimestamp)
+			*strptrMoveTo,
+			*intptrTimestamp,
+			noParentDir)
+
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)

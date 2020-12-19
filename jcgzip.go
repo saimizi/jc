@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 )
@@ -21,7 +22,7 @@ type JCGZIPConfig struct {
 func (c JCGZIPConfig) Compress(infile string) (string, error) {
 	var err = error(nil)
 
-	JCLoggerInfo.Printf("Compress %s with gzip.\n", infile)
+	JCLoggerDebug.Printf("Compress %s with gzip.\n", infile)
 	fi, err := os.Stat(infile)
 	if err != nil {
 		return "", err
@@ -64,6 +65,12 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 		return "", err
 	}
 
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		JCLoggerErr.Print(err)
+		return "", err
+	}
+
 	finished := make(chan bool)
 	go func() {
 		buffer := new(bytes.Buffer)
@@ -73,17 +80,31 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 		finished <- true
 	}()
 
-	if err := cmd.Run(); err != nil {
-		JCLoggerErr.Print(err)
+	errBuf := make(chan []byte)
+	go func() {
+		b, _ := ioutil.ReadAll(stderr)
+		errBuf <- b
+	}()
+	err = cmd.Run()
+	if err != nil {
+		err = fmt.Errorf("%s", <-errBuf)
 	}
 
 	<-finished
 
-	if c.info.moveto != "" {
-		cmd := exec.Command("mv", outName, c.info.moveto)
-		err = cmd.Run()
+	if err == nil {
+		if c.info.moveto != "" {
+			_, base := JCFileNameParse(outName)
+			cmd := exec.Command("mv", outName, c.info.moveto)
+			err = JCRunCmd(cmd)
+			outName = c.info.moveto + "/" + base
+		}
+
+		if c.info.showOutputFileSize {
+		}
 	}
 
+	JCLoggerDebug.Printf("Compressed file: %s.", outName)
 	return outName, err
 
 }

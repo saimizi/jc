@@ -3,8 +3,11 @@ package jc
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 )
 
@@ -23,9 +26,10 @@ func init() {
 }
 
 type JCConfigInfo struct {
-	level           int
-	timestampOption int
-	moveto          string
+	level              int
+	timestampOption    int
+	moveto             string
+	showOutputFileSize bool
 }
 
 type JCConfig interface {
@@ -44,6 +48,20 @@ func JCCompress(c JCConfig, infile string) (string, error) {
 		s, err = v.Compress(infile)
 	case JCTARConfig:
 		s, err = v.Compress(infile)
+	default:
+		err = errors.New("Invalid compresser")
+	}
+
+	return s, err
+}
+
+func JCCompressMultiFiles(c JCConfig, pkgname string, infileDir string) (string, error) {
+	var s string = ""
+	var err error
+
+	switch v := c.(type) {
+	case JCTARConfig:
+		s, err = v.CompressMultiFiles(pkgname, infileDir)
 	default:
 		err = errors.New("Invalid compresser")
 	}
@@ -131,4 +149,50 @@ func JCCheckMoveTo(to string) error {
 	}
 
 	return nil
+}
+
+func JCRunCmd(cmd *exec.Cmd) error {
+	var err error
+	r, _ := cmd.StderrPipe()
+
+	cmd.Start()
+	s, _ := ioutil.ReadAll(r)
+	err = cmd.Wait()
+
+	if err != nil {
+		err = fmt.Errorf("%s", s)
+	}
+
+	return err
+}
+
+func JCRunCmdBuffer(cmd *exec.Cmd) ([]byte, []byte, error) {
+	stdout, _ := cmd.StdoutPipe()
+	stderr, _ := cmd.StderrPipe()
+
+	errBuf := make(chan []byte)
+	go func() {
+		b, _ := ioutil.ReadAll(stderr)
+		errBuf <- b
+	}()
+
+	outBuf := make(chan []byte)
+	go func() {
+		b, _ := ioutil.ReadAll(stdout)
+		outBuf <- b
+	}()
+	err := cmd.Run()
+
+	return <-outBuf, <-errBuf, err
+}
+
+func JCFileNameParse(infile string) (string, string) {
+	n := len(infile) - 1
+	if n >= 0 && infile[n] == '/' {
+		infile = infile[:n]
+	}
+
+	parent := filepath.Dir(infile)
+	base := filepath.Base(infile)
+	return parent, base
 }
