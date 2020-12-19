@@ -117,9 +117,6 @@ func JCTimestamp(option int) string {
 }
 
 func JCCheckMoveTo(to string) error {
-
-	JCLoggerDebug.Printf("MoveTo %s\n", to)
-
 	if to == "" {
 		return fmt.Errorf("MoveTo Directory is not specified.")
 	}

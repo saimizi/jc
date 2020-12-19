@@ -15,6 +15,8 @@ func (c JCTARConfig) Compress(infile string) (string, error) {
 	var err = error(nil)
 	var cmd *exec.Cmd
 
+	JCLoggerInfo.Printf("Compress %s with tar.\n", infile)
+
 	parent, base := c.InFile(infile)
 	outName, err := c.OutFileName(infile)
 	if err != nil {
@@ -22,7 +24,7 @@ func (c JCTARConfig) Compress(infile string) (string, error) {
 		return "", err
 	}
 
-	JCLoggerInfo.Printf("Tar %s to %s\n", infile, outName)
+	JCLoggerDebug.Printf("Tar %s to %s\n", infile, outName)
 	c.DumpConfig()
 	JCLoggerDebug.Printf("parent: %s, base: %s outName: %s", parent, base, outName)
 
@@ -73,9 +75,9 @@ func (c JCTARConfig) InFile(infile string) (string, string) {
 }
 
 func (c JCTARConfig) DumpConfig() {
-	JCLoggerInfo.Printf("JCTARConfig.level: %d\n", c.info.level)
-	JCLoggerInfo.Printf("JCTARConfig.timestampOption: %d\n", c.info.timestampOption)
-	JCLoggerInfo.Printf("JCGZIPConfig.MoveTo: %s\n", c.info.moveto)
+	JCLoggerDebug.Printf("JCTARConfig.level: %d\n", c.info.level)
+	JCLoggerDebug.Printf("JCTARConfig.timestampOption: %d\n", c.info.timestampOption)
+	JCLoggerDebug.Printf("JCGZIPConfig.MoveTo: %s\n", c.info.moveto)
 }
 
 func (c JCTARConfig) SetTimestampOption(option int) error {

@@ -21,6 +21,7 @@ type JCGZIPConfig struct {
 func (c JCGZIPConfig) Compress(infile string) (string, error) {
 	var err = error(nil)
 
+	JCLoggerInfo.Printf("Compress %s with gzip.\n", infile)
 	fi, err := os.Stat(infile)
 	if err != nil {
 		return "", err
@@ -45,7 +46,7 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 	defer outf.Close()
 	outFileWriter := bufio.NewWriter(outf)
 
-	JCLoggerInfo.Printf("Compress %s to %s\n", infile, outName)
+	JCLoggerDebug.Printf("Compress %s to %s\n", infile, outName)
 	c.DumpConfig()
 
 	compLevel := "--best"
@@ -79,7 +80,6 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 	<-finished
 
 	if c.info.moveto != "" {
-		JCLoggerDebug.Printf("Move %s to %s.", outName, c.info.moveto)
 		cmd := exec.Command("mv", outName, c.info.moveto)
 		err = cmd.Run()
 	}
@@ -103,9 +103,9 @@ func (c JCGZIPConfig) OutFileName(infile string) (string, error) {
 }
 
 func (c JCGZIPConfig) DumpConfig() {
-	JCLoggerInfo.Printf("JCGZIPConfig.level: %d\n", c.info.level)
-	JCLoggerInfo.Printf("JCGZIPConfig.timestampOption: %d\n", c.info.timestampOption)
-	JCLoggerInfo.Printf("JCGZIPConfig.MoveTo: %s\n", c.info.moveto)
+	JCLoggerDebug.Printf("JCGZIPConfig.level: %d\n", c.info.level)
+	JCLoggerDebug.Printf("JCGZIPConfig.timestampOption: %d\n", c.info.timestampOption)
+	JCLoggerDebug.Printf("JCGZIPConfig.MoveTo: %s\n", c.info.moveto)
 }
 
 func (c JCGZIPConfig) SetTimestampOption(option int) error {

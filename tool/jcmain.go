@@ -239,7 +239,21 @@ func main() {
 		"2: Year to seconds\n"+
 		"3: nanoseconds\n")
 
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: jc [Options] file1 file2 ...\n")
+		fmt.Fprintf(os.Stderr, "\nAvaible options:\n")
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
+
+	infiles := flag.Args()
+
+	infiles, haveSameName, err := checkInFiles(infiles)
+	if err != nil {
+		JCLoggerErr.Print(err)
+		os.Exit(1)
+	}
 
 	jcCmd := *strptrCompressCMD
 
@@ -248,14 +262,6 @@ func main() {
 		os.Exit(1)
 	} else {
 		JCLoggerInfo.Printf("Using %s\n", jcCmd)
-	}
-
-	infiles := flag.Args()
-
-	infiles, haveSameName, err := checkInFiles(infiles)
-	if err != nil {
-		JCLoggerErr.Print(err)
-		os.Exit(1)
 	}
 
 	if *strptrCollect != "" {
