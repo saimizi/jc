@@ -3,9 +3,8 @@ package jc
 import (
 	"errors"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"os/exec"
-	"path/filepath"
 )
 
 type JCTARConfig struct {
@@ -57,7 +56,7 @@ func (c JCTARConfig) CompressMultiFiles(pkgname string, infileDir string) (strin
 
 	JCLoggerDebug.Printf("Compress files in %s with tar.\n", infileDir)
 
-	outName, err := c.OutFileName(pkgname)
+	outName, err := c.OutFileName(infileDir + "/" + pkgname)
 	if err != nil {
 		JCLoggerErr.Print(err)
 		return "", err
@@ -73,14 +72,21 @@ func (c JCTARConfig) CompressMultiFiles(pkgname string, infileDir string) (strin
 	arg = append(arg, "-cf")
 	arg = append(arg, outName)
 
-	filepath.Walk(infileDir,
-		func(path string, info os.FileInfo, err error) error {
-			if path != infileDir {
-				_, base := JCFileNameParse(path)
-				arg = append(arg, base)
-			}
-			return nil
-		})
+	/*
+		filepath.Walk(infileDir,
+			func(path string, info os.FileInfo, err error) error {
+				if path != infileDir {
+					_, base := JCFileNameParse(path)
+					arg = append(arg, base)
+				}
+				return nil
+			})
+	*/
+
+	files, _ := ioutil.ReadDir(infileDir)
+	for _, f := range files {
+		arg = append(arg, f.Name())
+	}
 
 	JCLoggerDebug.Printf("tar %s\n", arg)
 	cmd = exec.Command("tar", arg...)
