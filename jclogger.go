@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// NullLogger : null logger handler
 func NullLogger() *log.Logger {
 	f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0)
 	if err != nil {
@@ -14,10 +15,12 @@ func NullLogger() *log.Logger {
 	return log.New(f, "", 0)
 }
 
+// NewErrLogger  : create new error logger handler
 func NewErrLogger() *log.Logger {
 	return log.New(os.Stderr, "ERROR: ", 0)
 }
 
+// NewWarnLogger : create new warn logger handler
 func NewWarnLogger() *log.Logger {
 	switch os.Getenv("JCDBG") {
 	case "error":
@@ -35,6 +38,7 @@ func NewWarnLogger() *log.Logger {
 	return NullLogger()
 }
 
+// NewInfoLogger : create new info logger
 func NewInfoLogger() *log.Logger {
 	switch os.Getenv("JCDBG") {
 	case "error":
@@ -52,6 +56,7 @@ func NewInfoLogger() *log.Logger {
 	return NullLogger()
 }
 
+// NewDebugLogger : new debug logger
 func NewDebugLogger() *log.Logger {
 
 	switch os.Getenv("JCDBG") {

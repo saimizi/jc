@@ -12,9 +12,15 @@ import (
 )
 
 var (
-	JCLoggerErr   *log.Logger
-	JCLoggerWarn  *log.Logger
-	JCLoggerInfo  *log.Logger
+	// JCLoggerErr : Error log handler
+	JCLoggerErr *log.Logger
+	// JCLoggerWarn : Warning log handler
+	JCLoggerWarn *log.Logger
+
+	// JCLoggerInfo : Information log handler
+	JCLoggerInfo *log.Logger
+
+	// JCLoggerDebug : Debug log handler
 	JCLoggerDebug *log.Logger
 )
 
@@ -25,28 +31,31 @@ func init() {
 	JCLoggerDebug = NewDebugLogger()
 }
 
-type JCConfigInfo struct {
+// ConfigInfo : Common config info
+type ConfigInfo struct {
 	level              int
 	timestampOption    int
 	moveto             string
 	showOutputFileSize bool
 }
 
-type JCConfig interface {
+// Config : interface for JC comprocesser
+type Config interface {
 	Compress(infile string) (string, error)
 	SetTimestampOption(option int) error
 	SetCompLevel(level int) bool
 	SetMoveTo(to string) error
 }
 
-func JCCompress(c JCConfig, infile string) (string, error) {
+// Compress : Common interface for JC
+func Compress(c Config, infile string) (string, error) {
 	var s string = ""
 	var err error
 
 	switch v := c.(type) {
-	case JCGZIPConfig:
+	case GZIPConfig:
 		s, err = v.Compress(infile)
-	case JCTARConfig:
+	case TARConfig:
 		s, err = v.Compress(infile)
 	default:
 		err = errors.New("Invalid compresser")
@@ -55,12 +64,13 @@ func JCCompress(c JCConfig, infile string) (string, error) {
 	return s, err
 }
 
-func JCCompressMultiFiles(c JCConfig, pkgname string, infileDir string) (string, error) {
+//CompressMultiFiles : Compress multi files
+func CompressMultiFiles(c Config, pkgname string, infileDir string) (string, error) {
 	var s string = ""
 	var err error
 
 	switch v := c.(type) {
-	case JCTARConfig:
+	case TARConfig:
 		s, err = v.CompressMultiFiles(pkgname, infileDir)
 	default:
 		err = errors.New("Invalid compresser")
@@ -69,11 +79,12 @@ func JCCompressMultiFiles(c JCConfig, pkgname string, infileDir string) (string,
 	return s, err
 }
 
-func JCSetTimestampOption(c JCConfig, option int) error {
+// SetTimestampOption : set time stamp
+func SetTimestampOption(c Config, option int) error {
 	switch v := c.(type) {
-	case JCGZIPConfig:
+	case GZIPConfig:
 		return v.SetTimestampOption(option)
-	case JCTARConfig:
+	case TARConfig:
 		return v.SetTimestampOption(option)
 	}
 
@@ -81,11 +92,12 @@ func JCSetTimestampOption(c JCConfig, option int) error {
 
 }
 
-func JCSetCompLevel(c JCConfig, level int) bool {
+// SetCompLevel : set compress level
+func SetCompLevel(c Config, level int) bool {
 	var ret bool
 
 	switch v := c.(type) {
-	case JCGZIPConfig:
+	case GZIPConfig:
 		ret = v.SetCompLevel(level)
 	default:
 		ret = false
@@ -94,13 +106,14 @@ func JCSetCompLevel(c JCConfig, level int) bool {
 	return ret
 }
 
-func JCSetMoveTo(c JCConfig, to string) error {
+// SetMoveTo : set move to directory name
+func SetMoveTo(c Config, to string) error {
 	var err error
 
 	switch v := c.(type) {
-	case JCGZIPConfig:
+	case GZIPConfig:
 		err = v.SetMoveTo(to)
-	case JCTARConfig:
+	case TARConfig:
 		err = v.SetMoveTo(to)
 	default:
 		err = nil
@@ -109,7 +122,8 @@ func JCSetMoveTo(c JCConfig, to string) error {
 	return err
 }
 
-func JCTimestamp(option int) string {
+// Timestamp : create time stamp name
+func Timestamp(option int) string {
 	t := time.Now()
 
 	switch option {
@@ -134,24 +148,26 @@ func JCTimestamp(option int) string {
 	return ""
 }
 
-func JCCheckMoveTo(to string) error {
+// CheckMoveTo : check move to directory name
+func CheckMoveTo(to string) error {
 	if to == "" {
-		return fmt.Errorf("MoveTo Directory is not specified.")
+		return fmt.Errorf("MoveTo Directory is not specified")
 	}
 
 	fi, err := os.Stat(to)
 	if err != nil {
-		return fmt.Errorf("MoveTo does not exist.")
+		return fmt.Errorf("MoveTo does not exist")
 	}
 
 	if !fi.IsDir() {
-		return fmt.Errorf("MoveTo %s is not a directory.", to)
+		return fmt.Errorf("MoveTo %s is not a directory", to)
 	}
 
 	return nil
 }
 
-func JCRunCmd(cmd *exec.Cmd) error {
+// RunCmd : run shell command helper
+func RunCmd(cmd *exec.Cmd) error {
 	var err error
 	r, _ := cmd.StderrPipe()
 
@@ -166,7 +182,8 @@ func JCRunCmd(cmd *exec.Cmd) error {
 	return err
 }
 
-func JCRunCmdBuffer(cmd *exec.Cmd) ([]byte, []byte, error) {
+// RunCmdBuffer : run shell command helper
+func RunCmdBuffer(cmd *exec.Cmd) ([]byte, []byte, error) {
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
@@ -186,7 +203,8 @@ func JCRunCmdBuffer(cmd *exec.Cmd) ([]byte, []byte, error) {
 	return <-outBuf, <-errBuf, err
 }
 
-func JCFileNameParse(infile string) (string, string) {
+// FileNameParse : file name parser
+func FileNameParse(infile string) (string, string) {
 	n := len(infile) - 1
 	if n >= 0 && infile[n] == '/' {
 		infile = infile[:n]

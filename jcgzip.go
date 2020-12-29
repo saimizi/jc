@@ -11,15 +11,25 @@ import (
 )
 
 const (
+	// MaxCompressLevel :the maximum compress level
 	MaxCompressLevel int = 11
+
+	// MinCompressLevel : the minimal compress level
 	MinCompressLevel int = 0
 )
 
-type JCGZIPConfig struct {
-	info *JCConfigInfo
+// GZIPConfig :
+type GZIPConfig struct {
+	info *ConfigInfo
 }
 
-func (c JCGZIPConfig) Compress(infile string) (string, error) {
+//DeCompress : decompress function
+func (c GZIPConfig) DeCompress(infile string) (string, error) {
+	return "", nil
+}
+
+//Compress : compress function
+func (c GZIPConfig) Compress(infile string) (string, error) {
 	var err = error(nil)
 
 	JCLoggerDebug.Printf("Compress %s with gzip.\n", infile)
@@ -33,7 +43,7 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 		return "", err
 	}
 
-	outName, err := c.OutFileName(infile)
+	outName, err := c.outFileName(infile)
 	if err != nil {
 		JCLoggerErr.Print(err)
 		return "", err
@@ -48,7 +58,7 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 	outFileWriter := bufio.NewWriter(outf)
 
 	JCLoggerDebug.Printf("Compress %s to %s\n", infile, outName)
-	c.DumpConfig()
+	c.dumpConfig()
 
 	compLevel := "--best"
 	info := (*c.info)
@@ -94,9 +104,9 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 
 	if err == nil {
 		if c.info.moveto != "" {
-			_, base := JCFileNameParse(outName)
+			_, base := FileNameParse(outName)
 			cmd := exec.Command("mv", outName, c.info.moveto)
-			err = JCRunCmd(cmd)
+			err = RunCmd(cmd)
 			outName = c.info.moveto + "/" + base
 		}
 
@@ -109,10 +119,10 @@ func (c JCGZIPConfig) Compress(infile string) (string, error) {
 
 }
 
-func (c JCGZIPConfig) OutFileName(infile string) (string, error) {
+func (c GZIPConfig) outFileName(infile string) (string, error) {
 	var of string
 
-	ts := JCTimestamp(c.info.timestampOption)
+	ts := Timestamp(c.info.timestampOption)
 
 	if ts != "" {
 		of = infile + "_" + ts + ".gz"
@@ -123,26 +133,28 @@ func (c JCGZIPConfig) OutFileName(infile string) (string, error) {
 	return of, nil
 }
 
-func (c JCGZIPConfig) DumpConfig() {
-	JCLoggerDebug.Printf("JCGZIPConfig.level: %d\n", c.info.level)
-	JCLoggerDebug.Printf("JCGZIPConfig.timestampOption: %d\n", c.info.timestampOption)
-	JCLoggerDebug.Printf("JCGZIPConfig.MoveTo: %s\n", c.info.moveto)
+func (c GZIPConfig) dumpConfig() {
+	JCLoggerDebug.Printf("GZIPConfig.level: %d\n", c.info.level)
+	JCLoggerDebug.Printf("GZIPConfig.timestampOption: %d\n", c.info.timestampOption)
+	JCLoggerDebug.Printf("GZIPConfig.MoveTo: %s\n", c.info.moveto)
 }
 
-func (c JCGZIPConfig) SetTimestampOption(option int) error {
+//SetTimestampOption : Set timestamp
+func (c GZIPConfig) SetTimestampOption(option int) error {
 	if option <= 3 && option >= 0 {
 		c.info.timestampOption = option
 		return nil
 	}
 
-	return errors.New(fmt.Sprintf("Invalid time stamp option %d.", option))
+	return fmt.Errorf("Invalid time stamp opton %d", option)
 }
 
 func vaildCompLevel(level int) bool {
 	return (level <= MaxCompressLevel) && (level >= MinCompressLevel)
 }
 
-func (c JCGZIPConfig) SetCompLevel(level int) bool {
+// SetCompLevel : Set compress level
+func (c GZIPConfig) SetCompLevel(level int) bool {
 	info := c.info
 	ret := false
 	for {
@@ -157,9 +169,10 @@ func (c JCGZIPConfig) SetCompLevel(level int) bool {
 	return ret
 }
 
-func (c JCGZIPConfig) SetMoveTo(to string) error {
+// SetMoveTo : set move to directory name
+func (c GZIPConfig) SetMoveTo(to string) error {
 
-	err := JCCheckMoveTo(to)
+	err := CheckMoveTo(to)
 	if err == nil {
 		c.info.moveto = to
 	}
@@ -167,15 +180,16 @@ func (c JCGZIPConfig) SetMoveTo(to string) error {
 	return err
 }
 
-func NewGZIPConfig(level int) (JCConfig, error) {
+// NewGZIPConfig : New GZIP config object
+func NewGZIPConfig(level int) (Config, error) {
 	if !vaildCompLevel(level) {
-		return nil, errors.New("Invalid compress level.")
+		return nil, errors.New("Invalid compress level")
 	}
 
-	info := JCConfigInfo{level: level, timestampOption: 0, moveto: ""}
-	config := JCGZIPConfig{info: &info}
+	info := ConfigInfo{level: level, timestampOption: 0, moveto: ""}
+	config := GZIPConfig{info: &info}
 
-	var j JCConfig = config
+	var j Config = config
 
 	return j, nil
 }

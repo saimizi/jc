@@ -1,31 +1,32 @@
 package jc
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
 )
 
-type JCTARConfig struct {
-	info *JCConfigInfo
+// TARConfig : tar compresser config
+type TARConfig struct {
+	info *ConfigInfo
 }
 
-func (c JCTARConfig) Compress(infile string) (string, error) {
+// Compress : compress function
+func (c TARConfig) Compress(infile string) (string, error) {
 	var err = error(nil)
 	var cmd *exec.Cmd
 
 	JCLoggerDebug.Printf("Compress %s with tar.\n", infile)
 
-	parent, base := JCFileNameParse(infile)
-	outName, err := c.OutFileName(infile)
+	parent, base := FileNameParse(infile)
+	outName, err := c.outFileName(infile)
 	if err != nil {
 		JCLoggerErr.Print(err)
 		return "", err
 	}
 
 	JCLoggerDebug.Printf("Tar %s to %s\n", infile, outName)
-	c.DumpConfig()
+	c.dumpConfig()
 
 	if parent == "." {
 		JCLoggerDebug.Printf("tar -cf  %s  %s\n", outName, infile)
@@ -39,7 +40,7 @@ func (c JCTARConfig) Compress(infile string) (string, error) {
 	if err == nil {
 		if c.info.moveto != "" {
 			JCLoggerDebug.Printf("Move %s to %s.", outName, c.info.moveto)
-			_, base := JCFileNameParse(outName)
+			_, base := FileNameParse(outName)
 			cmd := exec.Command("mv", outName, c.info.moveto)
 			err = cmd.Run()
 			outName = c.info.moveto + "/" + base
@@ -50,20 +51,21 @@ func (c JCTARConfig) Compress(infile string) (string, error) {
 	return outName, err
 }
 
-func (c JCTARConfig) CompressMultiFiles(pkgname string, infileDir string) (string, error) {
+//CompressMultiFiles : compress multiple file function
+func (c TARConfig) CompressMultiFiles(pkgname string, infileDir string) (string, error) {
 	var err = error(nil)
 	var cmd *exec.Cmd
 
 	JCLoggerDebug.Printf("Compress files in %s with tar.\n", infileDir)
 
-	outName, err := c.OutFileName(infileDir + "/" + pkgname)
+	outName, err := c.outFileName(infileDir + "/" + pkgname)
 	if err != nil {
 		JCLoggerErr.Print(err)
 		return "", err
 	}
 
 	JCLoggerDebug.Printf("Tar %s/* to %s\n", infileDir, outName)
-	c.DumpConfig()
+	c.dumpConfig()
 
 	var arg []string
 
@@ -76,7 +78,7 @@ func (c JCTARConfig) CompressMultiFiles(pkgname string, infileDir string) (strin
 		filepath.Walk(infileDir,
 			func(path string, info os.FileInfo, err error) error {
 				if path != infileDir {
-					_, base := JCFileNameParse(path)
+					_, base := FileNameParse(path)
 					arg = append(arg, base)
 				}
 				return nil
@@ -95,7 +97,7 @@ func (c JCTARConfig) CompressMultiFiles(pkgname string, infileDir string) (strin
 	if err == nil {
 		if c.info.moveto != "" {
 			JCLoggerDebug.Printf("Move %s to %s.", outName, c.info.moveto)
-			_, base := JCFileNameParse(outName)
+			_, base := FileNameParse(outName)
 			cmd := exec.Command("mv", outName, c.info.moveto)
 			err = cmd.Run()
 			outName = c.info.moveto + "/" + base
@@ -106,7 +108,7 @@ func (c JCTARConfig) CompressMultiFiles(pkgname string, infileDir string) (strin
 	return outName, err
 }
 
-func (c JCTARConfig) OutFileName(infile string) (string, error) {
+func (c TARConfig) outFileName(infile string) (string, error) {
 	var of string
 
 	n := len(infile) - 1
@@ -114,7 +116,7 @@ func (c JCTARConfig) OutFileName(infile string) (string, error) {
 		infile = infile[:n]
 	}
 
-	ts := JCTimestamp(c.info.timestampOption)
+	ts := Timestamp(c.info.timestampOption)
 	if ts != "" {
 		of = infile + "_" + ts + ".tar"
 	} else {
@@ -124,28 +126,31 @@ func (c JCTARConfig) OutFileName(infile string) (string, error) {
 	return of, nil
 }
 
-func (c JCTARConfig) DumpConfig() {
+func (c TARConfig) dumpConfig() {
 	JCLoggerDebug.Printf("JCTARConfig.level: %d\n", c.info.level)
 	JCLoggerDebug.Printf("JCTARConfig.timestampOption: %d\n", c.info.timestampOption)
 	JCLoggerDebug.Printf("JCGZIPConfig.MoveTo: %s\n", c.info.moveto)
 }
 
-func (c JCTARConfig) SetTimestampOption(option int) error {
+// SetTimestampOption : set time stamp option
+func (c TARConfig) SetTimestampOption(option int) error {
 	if option <= 3 && option >= 0 {
 		c.info.timestampOption = option
 		return nil
 	}
 
-	return errors.New(fmt.Sprintf("Invalid time stamp option %d.", option))
+	return fmt.Errorf("Invalid time stamp option %d", option)
 }
 
-func (c JCTARConfig) SetCompLevel(level int) bool {
+// SetCompLevel : set compress function
+func (c TARConfig) SetCompLevel(level int) bool {
 	return true
 }
 
-func (c JCTARConfig) SetMoveTo(to string) error {
+// SetMoveTo : set move to directory name
+func (c TARConfig) SetMoveTo(to string) error {
 
-	err := JCCheckMoveTo(to)
+	err := CheckMoveTo(to)
 	if err == nil {
 		c.info.moveto = to
 	}
@@ -153,11 +158,12 @@ func (c JCTARConfig) SetMoveTo(to string) error {
 	return err
 }
 
-func NewTARConfig() (JCConfig, error) {
-	var info JCConfigInfo
-	config := JCTARConfig{info: &info}
+// NewTARConfig : create tar compressor config
+func NewTARConfig() (Config, error) {
+	var info ConfigInfo
+	config := TARConfig{info: &info}
 
-	var j JCConfig = config
+	var j Config = config
 
 	return j, nil
 }

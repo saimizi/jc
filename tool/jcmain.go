@@ -14,9 +14,16 @@ import (
 )
 
 var (
-	JCLoggerErr   *log.Logger
-	JCLoggerWarn  *log.Logger
-	JCLoggerInfo  *log.Logger
+	//JCLoggerErr is log function
+	JCLoggerErr *log.Logger
+
+	//JCLoggerWarn is log function
+	JCLoggerWarn *log.Logger
+
+	//JCLoggerInfo is log function
+	JCLoggerInfo *log.Logger
+
+	//JCLoggerDebug is log function
 	JCLoggerDebug *log.Logger
 )
 
@@ -47,11 +54,11 @@ func checkInFiles(files []string) ([]string, bool, error) {
 	var haveSameName bool
 
 	if len(files) == 0 {
-		return nil, haveSameName, fmt.Errorf("No input files.")
+		return nil, haveSameName, fmt.Errorf("no input files")
 	}
 
 	if files == nil {
-		return nil, haveSameName, errors.New("No target file spcified")
+		return nil, haveSameName, errors.New("no target file spcified")
 	}
 
 	m := make(map[string]bool)
@@ -60,17 +67,17 @@ func checkInFiles(files []string) ([]string, bool, error) {
 		_, err := os.Stat(f)
 		if err != nil {
 			return nil, haveSameName, errors.New(f + " is not found")
-		} else {
-			m[f] = true
-			base := filepath.Base(f)
-			n[base]++
-
-			JCLoggerDebug.Printf("f: %s base:%s\n", f, base)
 		}
+
+		m[f] = true
+		base := filepath.Base(f)
+		n[base]++
+
+		JCLoggerDebug.Printf("f: %s base:%s\n", f, base)
 	}
 
 	var nfiles []string
-	for f, _ := range m {
+	for f := range m {
 		nfiles = append(nfiles, f)
 	}
 
@@ -91,7 +98,7 @@ func checkMoveTo(to string) (string, error) {
 		to = to[:n]
 	}
 
-	err := jc.JCCheckMoveTo(to)
+	err := jc.CheckMoveTo(to)
 
 	if err == nil {
 		return to, nil
@@ -100,7 +107,8 @@ func checkMoveTo(to string) (string, error) {
 	return "", err
 }
 
-func JCCompressOne(c jc.JCConfig, infiles []string) error {
+//JCCompressOne function is a one step compress function
+func JCCompressOne(c jc.Config, infiles []string) error {
 	var err error
 	var wg sync.WaitGroup
 
@@ -109,7 +117,7 @@ func JCCompressOne(c jc.JCConfig, infiles []string) error {
 
 		f := infile
 		go func() {
-			_, err = jc.JCCompress(c, f)
+			_, err = jc.Compress(c, f)
 			if err != nil {
 				JCLoggerErr.Print(err)
 			}
@@ -121,7 +129,8 @@ func JCCompressOne(c jc.JCConfig, infiles []string) error {
 	return err
 }
 
-func JCCompressTwo(c1 jc.JCConfig, c2 jc.JCConfig, infiles []string) error {
+//JCCompressTwo is a two step compress function
+func JCCompressTwo(c1 jc.Config, c2 jc.Config, infiles []string) error {
 	var err error
 	var wg sync.WaitGroup
 
@@ -131,9 +140,9 @@ func JCCompressTwo(c1 jc.JCConfig, c2 jc.JCConfig, infiles []string) error {
 		f := infile
 		go func() {
 
-			f1, err := jc.JCCompress(c1, f)
+			f1, err := jc.Compress(c1, f)
 			if err == nil {
-				_, err = jc.JCCompress(c2, f1)
+				_, err = jc.Compress(c2, f1)
 				if err != nil {
 					JCLoggerErr.Print(err)
 				}
@@ -150,7 +159,8 @@ func JCCompressTwo(c1 jc.JCConfig, c2 jc.JCConfig, infiles []string) error {
 	return err
 }
 
-func JCCollectionCompress(c2 jc.JCConfig,
+// JCCollectionCompress is a compress function for collection
+func JCCollectionCompress(c2 jc.Config,
 	pkgname string,
 	infiles []string,
 	moveto string,
@@ -158,16 +168,16 @@ func JCCollectionCompress(c2 jc.JCConfig,
 	noParentDir bool) error {
 
 	if pkgname == "" {
-		return fmt.Errorf("Pakcage name is null.")
+		return fmt.Errorf("Package name is null")
 	}
 
 	_, err := os.Stat(pkgname)
 	if err == nil {
-		return fmt.Errorf(" %s exists and can not be used as pakcage name.", pkgname)
+		return fmt.Errorf(" %s exists and can not be used as pakcage name", pkgname)
 	}
 
 	if len(infiles) == 0 {
-		return fmt.Errorf("No input files.")
+		return fmt.Errorf("No input files")
 	}
 
 	tmpdir, err := ioutil.TempDir(".", "jcpkg_")
@@ -190,7 +200,7 @@ func JCCollectionCompress(c2 jc.JCConfig,
 
 	for _, tp := range infiles {
 		cmd := exec.Command("cp", "-r", tp, pkgpath+"/")
-		err = jc.JCRunCmd(cmd)
+		err = jc.RunCmd(cmd)
 		if err != nil {
 			return err
 		}
@@ -198,7 +208,7 @@ func JCCollectionCompress(c2 jc.JCConfig,
 
 	var f1, f2 string
 	for {
-		var c1 jc.JCConfig
+		var c1 jc.Config
 
 		c1, err = jc.NewTARConfig()
 		if err != nil {
@@ -206,20 +216,20 @@ func JCCollectionCompress(c2 jc.JCConfig,
 
 		}
 
-		err = jc.JCSetTimestampOption(c1, timestampOption)
+		err = jc.SetTimestampOption(c1, timestampOption)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
 		}
 
 		if noParentDir == true {
-			f1, err = jc.JCCompressMultiFiles(c1, pkgname, pkgpath)
+			f1, err = jc.CompressMultiFiles(c1, pkgname, pkgpath)
 			if err != nil {
 				JCLoggerErr.Print(err)
 				break
 			}
 		} else {
-			f1, err = jc.JCCompress(c1, pkgpath)
+			f1, err = jc.Compress(c1, pkgpath)
 			if err != nil {
 				JCLoggerErr.Print(err)
 				break
@@ -228,7 +238,7 @@ func JCCollectionCompress(c2 jc.JCConfig,
 
 		JCLoggerDebug.Printf("c2: %v\n", c2)
 		if c2 != nil {
-			f2, err = jc.JCCompress(c2, f1)
+			f2, err = jc.Compress(c2, f1)
 			if err != nil {
 				JCLoggerErr.Print(err)
 			}
@@ -240,11 +250,11 @@ func JCCollectionCompress(c2 jc.JCConfig,
 		if moveto == "" {
 			JCLoggerDebug.Printf("mv %s to current directory \n", f2)
 			cmd := exec.Command("mv", f2, ".")
-			err = jc.JCRunCmd(cmd)
+			err = jc.RunCmd(cmd)
 		} else {
 			JCLoggerDebug.Printf("mv %s to %s.\n", f2, moveto)
 			cmd := exec.Command("mv", f2, moveto)
-			_, errbuf, tmperr := jc.JCRunCmdBuffer(cmd)
+			_, errbuf, tmperr := jc.RunCmdBuffer(cmd)
 			if tmperr != nil {
 				err = fmt.Errorf("%s", errbuf)
 			}
@@ -269,8 +279,8 @@ func main() {
 		"3: nanoseconds\n")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: jc [Options] <File|Dir> [File|Dir]...\n")
-		fmt.Fprintf(os.Stderr, "\nAvaible options:\n")
+		fmt.Fprintf(os.Stderr, "\nUsage: jc [Options] <File|Dir> [File|Dir]...\n")
+		fmt.Fprintf(os.Stderr, "Avaible options:\n")
 		flag.PrintDefaults()
 	}
 
@@ -280,6 +290,7 @@ func main() {
 
 	infiles, haveSameName, err := checkInFiles(infiles)
 	if err != nil {
+		JCLoggerErr.Println(err)
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -294,7 +305,7 @@ func main() {
 	}
 
 	if *strptrCollect != "" || *strptrCollectNoParentDir != "" {
-		var c jc.JCConfig
+		var c jc.Config
 
 		if haveSameName {
 			JCLoggerErr.Print("Can not collect files that have the same name.")
@@ -340,7 +351,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		err = jc.JCSetTimestampOption(c, *intptrTimestamp)
+		err = jc.SetTimestampOption(c, *intptrTimestamp)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
@@ -349,11 +360,11 @@ func main() {
 		to, err := checkMoveTo(*strptrMoveTo)
 		if err == nil {
 			if haveSameName && (*intptrTimestamp < 3) {
-				JCLoggerErr.Print("Can not move compressed files that have the same name.")
+				JCLoggerErr.Print("Can not move compressed files that have the same name")
 				os.Exit(1)
 			}
 
-			err = jc.JCSetMoveTo(c, to)
+			err = jc.SetMoveTo(c, to)
 			if err != nil {
 				JCLoggerErr.Print(err)
 				os.Exit(1)
@@ -376,7 +387,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		err = jc.JCSetTimestampOption(c, *intptrTimestamp)
+		err = jc.SetTimestampOption(c, *intptrTimestamp)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
@@ -385,11 +396,11 @@ func main() {
 		to, err := checkMoveTo(*strptrMoveTo)
 		if err == nil {
 			if haveSameName && (*intptrTimestamp < 3) {
-				JCLoggerErr.Print("Can not move compressed files that have the same name.")
+				JCLoggerErr.Print("Can not move compressed files that have the same name")
 				os.Exit(1)
 			}
 
-			err = jc.JCSetMoveTo(c, to)
+			err = jc.SetMoveTo(c, to)
 			if err != nil {
 				JCLoggerErr.Print(err)
 				os.Exit(1)
@@ -418,7 +429,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		err = jc.JCSetTimestampOption(c1, *intptrTimestamp)
+		err = jc.SetTimestampOption(c1, *intptrTimestamp)
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
@@ -427,11 +438,11 @@ func main() {
 		to, err := checkMoveTo(*strptrMoveTo)
 		if err == nil {
 			if haveSameName && (*intptrTimestamp < 3) {
-				JCLoggerErr.Print("Can not move compressed files that have the same name.")
+				JCLoggerErr.Print("Can not move compressed files that have the same name")
 				os.Exit(1)
 			}
 
-			err = jc.JCSetMoveTo(c2, to)
+			err = jc.SetMoveTo(c2, to)
 			if err != nil {
 				JCLoggerErr.Print(err)
 				os.Exit(1)
