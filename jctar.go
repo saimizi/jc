@@ -35,6 +35,13 @@ func (c TARConfig) DeCompress(infile string) (string, error) {
 
 	if err == nil {
 		outfilename = strings.TrimSuffix(infile, ".tar")
+		if c.info.moveto != "" {
+			JCLoggerDebug.Printf("Move %s to %s", outfilename, c.info.moveto)
+			_, base := FileNameParse(outfilename)
+			cmd := exec.Command("mv", outfilename, c.info.moveto)
+			RunCmd(cmd)
+			outfilename = c.info.moveto + "/" + base
+		}
 	}
 
 	JCLoggerDebug.Printf("After TARConfig.DeCompress: %s", outfilename)

@@ -59,6 +59,8 @@ func DeCompress(c Config, infile string) (string, error) {
 		s, err = v.DeCompress(infile)
 	case TARConfig:
 		s, err = v.DeCompress(infile)
+	case XZConfig:
+		s, err = v.DeCompress(infile)
 	default:
 		err = errors.New("Invalid decompresser")
 	}
@@ -75,6 +77,8 @@ func Compress(c Config, infile string) (string, error) {
 	case GZIPConfig:
 		s, err = v.Compress(infile)
 	case TARConfig:
+		s, err = v.Compress(infile)
+	case XZConfig:
 		s, err = v.Compress(infile)
 	default:
 		err = errors.New("Invalid compresser")
@@ -105,6 +109,8 @@ func SetTimestampOption(c Config, option int) error {
 		return v.SetTimestampOption(option)
 	case TARConfig:
 		return v.SetTimestampOption(option)
+	case XZConfig:
+		return v.SetTimestampOption(option)
 	}
 
 	return errors.New("UnKnown JC config")
@@ -117,6 +123,8 @@ func SetCompLevel(c Config, level int) bool {
 
 	switch v := c.(type) {
 	case GZIPConfig:
+		ret = v.SetCompLevel(level)
+	case XZConfig:
 		ret = v.SetCompLevel(level)
 	default:
 		ret = false
@@ -131,6 +139,8 @@ func SetMoveTo(c Config, to string) error {
 
 	switch v := c.(type) {
 	case GZIPConfig:
+		err = v.SetMoveTo(to)
+	case XZConfig:
 		err = v.SetMoveTo(to)
 	case TARConfig:
 		err = v.SetMoveTo(to)

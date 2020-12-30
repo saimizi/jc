@@ -11,14 +11,6 @@ import (
 	"strings"
 )
 
-const (
-	// MaxCompressLevel :the maximum compress level
-	MaxCompressLevel int = 11
-
-	// MinCompressLevel : the minimal compress level
-	MinCompressLevel int = 0
-)
-
 // GZIPConfig :
 type GZIPConfig struct {
 	info *ConfigInfo
@@ -45,6 +37,13 @@ func (c GZIPConfig) DeCompress(infile string) (string, error) {
 
 	if err == nil {
 		outfilename = strings.TrimSuffix(infile, ".gz")
+		if c.info.moveto != "" {
+			JCLoggerDebug.Printf("Move %s to %s", outfilename, c.info.moveto)
+			_, base := FileNameParse(outfilename)
+			cmd := exec.Command("mv", outfilename, c.info.moveto)
+			RunCmd(cmd)
+			outfilename = c.info.moveto + "/" + base
+		}
 	}
 
 	JCLoggerDebug.Printf("After GZIPConfig.DeCompress: %s", outfilename)
@@ -83,14 +82,11 @@ func (c GZIPConfig) Compress(infile string) (string, error) {
 	JCLoggerDebug.Printf("Compress %s to %s\n", infile, outName)
 	c.dumpConfig()
 
-	compLevel := "--best"
-	info := (*c.info)
-
-	if info.level < 5 {
-		compLevel = "--fast"
-	}
-
-	cmd := exec.Command("gzip", "--keep", "--stdout", compLevel, infile)
+	cmd := exec.Command("gzip",
+		fmt.Sprintf("-%d", c.info.level),
+		"--keep",
+		"--stdout",
+		infile)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -132,9 +128,6 @@ func (c GZIPConfig) Compress(infile string) (string, error) {
 			err = RunCmd(cmd)
 			outName = c.info.moveto + "/" + base
 		}
-
-		if c.info.showOutputFileSize {
-		}
 	}
 
 	JCLoggerDebug.Printf("Compressed file: %s.", outName)
@@ -172,8 +165,9 @@ func (c GZIPConfig) SetTimestampOption(option int) error {
 	return fmt.Errorf("Invalid time stamp opton %d", option)
 }
 
-func vaildCompLevel(level int) bool {
-	return (level <= MaxCompressLevel) && (level >= MinCompressLevel)
+// VaildCompLevel : vaild compress level
+func (c GZIPConfig) VaildCompLevel(level int) bool {
+	return (level <= 9) && (level >= 1)
 }
 
 // SetCompLevel : Set compress level
@@ -181,7 +175,7 @@ func (c GZIPConfig) SetCompLevel(level int) bool {
 	info := c.info
 	ret := false
 	for {
-		if !vaildCompLevel(level) {
+		if !c.VaildCompLevel(level) {
 			break
 		}
 
@@ -204,15 +198,11 @@ func (c GZIPConfig) SetMoveTo(to string) error {
 }
 
 // NewGZIPConfig : New GZIP config object
-func NewGZIPConfig(level int) (Config, error) {
-	if !vaildCompLevel(level) {
-		return nil, errors.New("Invalid compress level")
-	}
+func NewGZIPConfig() (Config, error) {
+	var err error
 
-	info := ConfigInfo{level: level, timestampOption: 0, moveto: ""}
+	info := ConfigInfo{level: 0, timestampOption: 0, moveto: ""}
 	config := GZIPConfig{info: &info}
 
-	var j Config = config
-
-	return j, nil
+	return config, err
 }
