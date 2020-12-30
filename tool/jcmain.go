@@ -43,6 +43,7 @@ func checkCompressCmd(cmd string) bool {
 		"xz",
 		"txz",
 		"bzip2",
+		"tbz2",
 	}
 
 	for _, r := range validCmd {
