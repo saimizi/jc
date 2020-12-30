@@ -41,13 +41,32 @@ type ConfigInfo struct {
 
 // Config : interface for JC comprocesser
 type Config interface {
+	Name() string
 	Compress(infile string) (string, error)
+	DeCompress(infile string) (string, error)
 	SetTimestampOption(option int) error
 	SetCompLevel(level int) bool
 	SetMoveTo(to string) error
 }
 
-// Compress : Common interface for JC
+// DeCompress : common decompress interface for JC
+func DeCompress(c Config, infile string) (string, error) {
+	var s string = ""
+	var err error
+
+	switch v := c.(type) {
+	case GZIPConfig:
+		s, err = v.DeCompress(infile)
+	case TARConfig:
+		s, err = v.DeCompress(infile)
+	default:
+		err = errors.New("Invalid decompresser")
+	}
+
+	return s, err
+}
+
+// Compress : common  compress interface for JC
 func Compress(c Config, infile string) (string, error) {
 	var s string = ""
 	var err error

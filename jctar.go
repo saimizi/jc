@@ -1,14 +1,44 @@
 package jc
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"strings"
 )
 
 // TARConfig : tar compresser config
 type TARConfig struct {
 	info *ConfigInfo
+}
+
+// Name : tar compress name
+func (c TARConfig) Name() string {
+	return "TARConfig"
+}
+
+// DeCompress : decompress function
+func (c TARConfig) DeCompress(infile string) (string, error) {
+	var err error
+	var outfilename string
+
+	JCLoggerDebug.Printf("TARConfig.DeCompress: %s", infile)
+
+	if strings.HasSuffix(infile, "tar") {
+		parent, _ := FileNameParse(infile)
+		cmd := exec.Command("tar", "-x", "-C", parent, "-f", infile)
+		err = RunCmd(cmd)
+	} else {
+		err = errors.New("suffix is not tar")
+	}
+
+	if err == nil {
+		outfilename = strings.TrimSuffix(infile, ".tar")
+	}
+
+	JCLoggerDebug.Printf("After TARConfig.DeCompress: %s", outfilename)
+	return outfilename, err
 }
 
 // Compress : compress function

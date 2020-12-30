@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -48,6 +49,36 @@ func checkCompressCmd(cmd string) bool {
 	}
 
 	return false
+}
+
+func checkDecompressInFiles(files []string) ([]string, error) {
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no input files")
+	}
+
+	m := make(map[string]bool)
+	var nfiles []string
+	for _, f := range files {
+		if !strings.HasSuffix(f, "gz") &&
+			!strings.HasSuffix(f, "tar") &&
+			!strings.HasSuffix(f, "tgz") &&
+			!strings.HasSuffix(f, "tar.gz") {
+
+			return nil, fmt.Errorf(f + "Invalid suffix\n")
+		}
+
+		_, err := os.Stat(f)
+		if err != nil {
+			return nil, errors.New(f + " is not found")
+		}
+
+		if m[f] == false {
+			nfiles = append(nfiles, f)
+			m[f] = true
+		}
+	}
+
+	return nfiles, nil
 }
 
 func checkInFiles(files []string) ([]string, bool, error) {
@@ -107,7 +138,83 @@ func checkMoveTo(to string) (string, error) {
 	return "", err
 }
 
-//JCCompressOne function is a one step compress function
+func getConfig(infile string) jc.Config {
+
+	var j jc.Config
+
+	JCLoggerDebug.Printf("getConfig: check %s\n", infile)
+
+	if infile == "" {
+		return nil
+	}
+
+	if strings.HasSuffix(infile, "gz") {
+		j, _ = jc.NewGZIPConfig(jc.MaxCompressLevel)
+	}
+
+	if strings.HasSuffix(infile, "tar") {
+		j, _ = jc.NewTARConfig()
+	}
+
+	if j != nil {
+		JCLoggerDebug.Printf("getConfig: find compresser %s\n", j.Name())
+	} else {
+		JCLoggerDebug.Printf("getConfig: Not find any compresser\n")
+	}
+	return j
+
+}
+
+// JCDecompressOne : decompress function
+func JCDecompressOne(infile string) (string, error) {
+	var err error
+	f := infile
+
+	var tmpfiles []string
+
+	defer func() {
+		for _, tf := range tmpfiles {
+			JCLoggerDebug.Printf("Remove tmpfile %s\n", tf)
+			os.Remove(tf)
+		}
+	}()
+
+	for j := getConfig(f); j != nil; j = getConfig(f) {
+
+		if j != nil && f != infile {
+			tmpfiles = append(tmpfiles, f)
+		}
+
+		JCLoggerDebug.Printf("Decompress %s\n", f)
+		f, err = j.DeCompress(f)
+	}
+	return infile, err
+}
+
+// JCDecompress : decompress function
+func JCDecompress(infiles []string) error {
+
+	var err error
+	var wg sync.WaitGroup
+
+	wg.Add(len(infiles))
+	for _, inf := range infiles {
+
+		f := inf
+		go func() {
+			_, err = JCDecompressOne(f)
+			if err != nil {
+				JCLoggerErr.Print(err)
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	return err
+}
+
+//JCCompressOne : a one step compress function
 func JCCompressOne(c jc.Config, infiles []string) error {
 	var err error
 	var wg sync.WaitGroup
@@ -267,6 +374,7 @@ func JCCollectionCompress(c2 jc.Config,
 }
 
 func main() {
+	boolptrDecompress := flag.Bool("d", false, "Decompress.")
 	strptrMoveTo := flag.String("C", "", "Move the compressed file to specified dir.")
 	strptrCompressCMD := flag.String("c", "tgz", "Compress command.")
 	intptrCompressLevel := flag.Int("l", 6, "Compress level.")
@@ -287,6 +395,21 @@ func main() {
 	flag.Parse()
 
 	infiles := flag.Args()
+
+	if *boolptrDecompress {
+		JCLoggerDebug.Printf("Decompress")
+		infiles, err := checkDecompressInFiles(infiles)
+		if err != nil {
+			JCLoggerErr.Println(err)
+			os.Exit(1)
+		}
+		err = JCDecompress(infiles)
+		if err != nil {
+			JCLoggerErr.Println(err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
 
 	infiles, haveSameName, err := checkInFiles(infiles)
 	if err != nil {

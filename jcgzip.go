@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 const (
@@ -23,9 +24,31 @@ type GZIPConfig struct {
 	info *ConfigInfo
 }
 
+// Name : tar compress name
+func (c GZIPConfig) Name() string {
+	return "GZIPConfig"
+}
+
 //DeCompress : decompress function
 func (c GZIPConfig) DeCompress(infile string) (string, error) {
-	return "", nil
+	var err error
+	var outfilename string
+
+	JCLoggerDebug.Printf("GZIPConfig.DeCompress: %s", infile)
+
+	if strings.HasSuffix(infile, "gz") {
+		cmd := exec.Command("gzip", "-d", "-k", infile)
+		err = RunCmd(cmd)
+	} else {
+		err = errors.New("suffix is not gz")
+	}
+
+	if err == nil {
+		outfilename = strings.TrimSuffix(infile, ".gz")
+	}
+
+	JCLoggerDebug.Printf("After GZIPConfig.DeCompress: %s", outfilename)
+	return outfilename, err
 }
 
 //Compress : compress function
