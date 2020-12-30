@@ -57,6 +57,8 @@ func DeCompress(c Config, infile string) (string, error) {
 	switch v := c.(type) {
 	case GZIPConfig:
 		s, err = v.DeCompress(infile)
+	case BZIP2Config:
+		s, err = v.DeCompress(infile)
 	case TARConfig:
 		s, err = v.DeCompress(infile)
 	case XZConfig:
@@ -75,6 +77,8 @@ func Compress(c Config, infile string) (string, error) {
 
 	switch v := c.(type) {
 	case GZIPConfig:
+		s, err = v.Compress(infile)
+	case BZIP2Config:
 		s, err = v.Compress(infile)
 	case TARConfig:
 		s, err = v.Compress(infile)
@@ -107,6 +111,8 @@ func SetTimestampOption(c Config, option int) error {
 	switch v := c.(type) {
 	case GZIPConfig:
 		return v.SetTimestampOption(option)
+	case BZIP2Config:
+		return v.SetTimestampOption(option)
 	case TARConfig:
 		return v.SetTimestampOption(option)
 	case XZConfig:
@@ -124,6 +130,8 @@ func SetCompLevel(c Config, level int) bool {
 	switch v := c.(type) {
 	case GZIPConfig:
 		ret = v.SetCompLevel(level)
+	case BZIP2Config:
+		ret = v.SetCompLevel(level)
 	case XZConfig:
 		ret = v.SetCompLevel(level)
 	default:
@@ -139,6 +147,8 @@ func SetMoveTo(c Config, to string) error {
 
 	switch v := c.(type) {
 	case GZIPConfig:
+		err = v.SetMoveTo(to)
+	case BZIP2Config:
 		err = v.SetMoveTo(to)
 	case XZConfig:
 		err = v.SetMoveTo(to)

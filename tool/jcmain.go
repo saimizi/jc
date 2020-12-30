@@ -42,6 +42,7 @@ func checkCompressCmd(cmd string) bool {
 		"tgz",
 		"xz",
 		"txz",
+		"bzip2",
 	}
 
 	for _, r := range validCmd {
@@ -63,7 +64,9 @@ func checkDecompressInFiles(files []string) ([]string, error) {
 	for _, f := range files {
 		if !strings.HasSuffix(f, "gz") &&
 			!strings.HasSuffix(f, "tar") &&
+			!strings.HasSuffix(f, "bz2") &&
 			!strings.HasSuffix(f, "xz") &&
+			!strings.HasSuffix(f, "tar.bz2") &&
 			!strings.HasSuffix(f, "tar.xz") &&
 			!strings.HasSuffix(f, "tar.gz") {
 
@@ -161,6 +164,10 @@ func getConfig(infile string) jc.Config {
 
 	if strings.HasSuffix(infile, "xz") {
 		j, _ = jc.NewXZConfig()
+	}
+
+	if strings.HasSuffix(infile, "bz2") {
+		j, _ = jc.NewBZIP2Config()
 	}
 
 	if j != nil {
@@ -472,6 +479,14 @@ func main() {
 			}
 		}
 
+		if (*strptrCompressCMD == "bz2") || (*strptrCompressCMD == "tbz2") {
+			c, err = jc.NewBZIP2Config()
+			if err != nil {
+				JCLoggerErr.Print(err)
+				os.Exit(1)
+			}
+		}
+
 		if c == nil {
 			JCLoggerErr.Printf("Invalid compressor %s", *strptrCompressCMD)
 			os.Exit(1)
@@ -509,6 +524,47 @@ func main() {
 
 	if *strptrCompressCMD == "gzip" {
 		c, err := jc.NewGZIPConfig()
+		if err != nil {
+			JCLoggerErr.Print(err)
+			os.Exit(1)
+		}
+
+		if !c.SetCompLevel(*intptrCompressLevel) {
+			JCLoggerWarn.Printf("Set compress level %d to %s failed",
+				*intptrCompressLevel,
+				c.Name())
+		}
+
+		err = jc.SetTimestampOption(c, *intptrTimestamp)
+		if err != nil {
+			JCLoggerErr.Print(err)
+			os.Exit(1)
+		}
+
+		to, err := checkMoveTo(*strptrMoveTo)
+		if err == nil {
+			if haveSameName && (*intptrTimestamp < 3) {
+				JCLoggerErr.Print("Can not move compressed files that have the same name")
+				os.Exit(1)
+			}
+
+			err = jc.SetMoveTo(c, to)
+			if err != nil {
+				JCLoggerErr.Print(err)
+				os.Exit(1)
+			}
+		}
+
+		err = JCCompressOne(c, infiles)
+		if err != nil {
+			JCLoggerErr.Print(err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if *strptrCompressCMD == "bzip2" {
+		c, err := jc.NewBZIP2Config()
 		if err != nil {
 			JCLoggerErr.Print(err)
 			os.Exit(1)
@@ -625,7 +681,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *strptrCompressCMD == "tgz" || *strptrCompressCMD == "txz" {
+	if *strptrCompressCMD == "tgz" ||
+		*strptrCompressCMD == "txz" ||
+		*strptrCompressCMD == "tbz2" {
 		c1, err := jc.NewTARConfig()
 		if err != nil {
 			JCLoggerErr.Print(err)
@@ -637,7 +695,10 @@ func main() {
 			c2, err = jc.NewGZIPConfig()
 		} else if *strptrCompressCMD == "txz" {
 			c2, err = jc.NewXZConfig()
+		} else if *strptrCompressCMD == "tbz2" {
+			c2, err = jc.NewBZIP2Config()
 		}
+
 		if !c2.SetCompLevel(*intptrCompressLevel) {
 			JCLoggerWarn.Printf("Set compress level %d to %s failed",
 				*intptrCompressLevel,
