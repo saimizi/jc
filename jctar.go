@@ -79,7 +79,7 @@ func (c TARConfig) Compress(infile string) (string, error) {
 			JCLoggerDebug.Printf("Move %s to %s.", outName, c.info.moveto)
 			_, base := FileNameParse(outName)
 			cmd := exec.Command("mv", outName, c.info.moveto)
-			err = cmd.Run()
+			cmd.Run()
 			outName = c.info.moveto + "/" + base
 		}
 	}

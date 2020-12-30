@@ -390,7 +390,7 @@ func JCCollectionCompress(c2 jc.Config,
 
 func main() {
 	boolptrDecompress := flag.Bool("d", false, "Decompress.")
-	strptrMoveTo := flag.String("C", "", "Move the compressed file to specified dir.")
+	strptrMoveTo := flag.String("C", ".", "Move the compressed file to specified dir.")
 	strptrCompressCMD := flag.String("c", "tgz", "Compress command.")
 	intptrCompressLevel := flag.Int("l", 6, "Compress level.")
 	strptrCollect := flag.String("a", "", "Collect all files to create a tarball.")
