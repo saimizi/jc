@@ -17,7 +17,7 @@ func NullLogger() *log.Logger {
 
 // NewErrLogger  : create new error logger handler
 func NewErrLogger() *log.Logger {
-	return log.New(os.Stderr, "ERROR: ", 0)
+	return log.New(os.Stderr, "ERROR: ", log.Lshortfile)
 }
 
 // NewWarnLogger : create new warn logger handler

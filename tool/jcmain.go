@@ -249,7 +249,7 @@ func JCCompressOne(c jc.Config, infiles []string) error {
 		go func() {
 			_, err = jc.Compress(c, f)
 			if err != nil {
-				JCLoggerErr.Print(err)
+				JCLoggerErr.Printf("%s : %s\n", f, err.Error())
 			}
 			wg.Done()
 		}()
@@ -532,165 +532,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *strptrCompressCMD == "gzip" {
-		c, err := jc.NewGZIPConfig()
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-
-		if !c.SetCompLevel(*intptrCompressLevel) {
-			JCLoggerWarn.Printf("Set compress level %d to %s failed",
-				*intptrCompressLevel,
-				c.Name())
-		}
-
-		err = jc.SetTimestampOption(c, *intptrTimestamp)
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-
-		to, err := checkMoveTo(*strptrMoveTo)
-		if err == nil {
-			if haveSameName && (*intptrTimestamp < 3) {
-				JCLoggerErr.Print("Can not move compressed files that have the same name")
-				os.Exit(1)
-			}
-
-			err = jc.SetMoveTo(c, to)
-			if err != nil {
-				JCLoggerErr.Print(err)
-				os.Exit(1)
-			}
-		}
-
-		err = JCCompressOne(c, infiles)
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-		os.Exit(0)
-	}
-
-	if *strptrCompressCMD == "bzip2" {
-		c, err := jc.NewBZIP2Config()
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-
-		if !c.SetCompLevel(*intptrCompressLevel) {
-			JCLoggerWarn.Printf("Set compress level %d to %s failed",
-				*intptrCompressLevel,
-				c.Name())
-		}
-
-		err = jc.SetTimestampOption(c, *intptrTimestamp)
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-
-		to, err := checkMoveTo(*strptrMoveTo)
-		if err == nil {
-			if haveSameName && (*intptrTimestamp < 3) {
-				JCLoggerErr.Print("Can not move compressed files that have the same name")
-				os.Exit(1)
-			}
-
-			err = jc.SetMoveTo(c, to)
-			if err != nil {
-				JCLoggerErr.Print(err)
-				os.Exit(1)
-			}
-		}
-
-		err = JCCompressOne(c, infiles)
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-		os.Exit(0)
-	}
-
-	if *strptrCompressCMD == "xz" {
-		c, err := jc.NewXZConfig()
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-
-		if !c.SetCompLevel(*intptrCompressLevel) {
-			JCLoggerWarn.Printf("Set compress level %d to %s failed",
-				*intptrCompressLevel,
-				c.Name())
-		}
-
-		err = jc.SetTimestampOption(c, *intptrTimestamp)
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-
-		to, err := checkMoveTo(*strptrMoveTo)
-		if err == nil {
-			if haveSameName && (*intptrTimestamp < 3) {
-				JCLoggerErr.Print("Can not move compressed files that have the same name")
-				os.Exit(1)
-			}
-
-			err = jc.SetMoveTo(c, to)
-			if err != nil {
-				JCLoggerErr.Print(err)
-				os.Exit(1)
-			}
-		}
-
-		err = JCCompressOne(c, infiles)
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-		os.Exit(0)
-	}
-
-	if *strptrCompressCMD == "tar" {
-		c, err := jc.NewTARConfig()
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-
-		err = jc.SetTimestampOption(c, *intptrTimestamp)
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-
-		to, err := checkMoveTo(*strptrMoveTo)
-		if err == nil {
-			if haveSameName && (*intptrTimestamp < 3) {
-				JCLoggerErr.Print("Can not move compressed files that have the same name")
-				os.Exit(1)
-			}
-
-			err = jc.SetMoveTo(c, to)
-			if err != nil {
-				JCLoggerErr.Print(err)
-				os.Exit(1)
-			}
-		}
-
-		err = JCCompressOne(c, infiles)
-		if err != nil {
-			JCLoggerErr.Print(err)
-			os.Exit(1)
-		}
-
-		os.Exit(0)
-	}
-
 	if *strptrCompressCMD == "tgz" ||
 		*strptrCompressCMD == "txz" ||
 		*strptrCompressCMD == "tbz2" {
@@ -748,4 +589,55 @@ func main() {
 		os.Exit(0)
 	}
 
+	var c jc.Config
+
+	if *strptrCompressCMD == "gzip" {
+		c, err = jc.NewGZIPConfig()
+	} else if *strptrCompressCMD == "bzip2" {
+		c, err = jc.NewBZIP2Config()
+	} else if *strptrCompressCMD == "xz" {
+		c, err = jc.NewXZConfig()
+	} else if *strptrCompressCMD == "tar" {
+		c, err = jc.NewTARConfig()
+	} else {
+		JCLoggerErr.Print("Invalid comprocessor")
+		os.Exit(1)
+	}
+
+	if err != nil {
+		JCLoggerErr.Print(err)
+		os.Exit(1)
+	}
+
+	if !c.SetCompLevel(*intptrCompressLevel) {
+		JCLoggerWarn.Printf("Set compress level %d to %s failed",
+			*intptrCompressLevel,
+			c.Name())
+	}
+
+	err = jc.SetTimestampOption(c, *intptrTimestamp)
+	if err != nil {
+		JCLoggerErr.Print(err)
+		os.Exit(1)
+	}
+
+	to, err := checkMoveTo(*strptrMoveTo)
+	if err == nil {
+		if haveSameName && (*intptrTimestamp < 3) {
+			JCLoggerErr.Print("Can not move compressed files that have the same name")
+			os.Exit(1)
+		}
+
+		err = jc.SetMoveTo(c, to)
+		if err != nil {
+			JCLoggerErr.Print(err)
+			os.Exit(1)
+		}
+	}
+
+	err = JCCompressOne(c, infiles)
+	if err != nil {
+		os.Exit(1)
+	}
+	os.Exit(0)
 }
