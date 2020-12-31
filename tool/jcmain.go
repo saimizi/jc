@@ -413,6 +413,15 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\nUsage: jc [Options] <File|Dir> [File|Dir]...\n")
 		fmt.Fprintf(os.Stderr, "Avaible options:\n")
 		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "Avaible compress commands:\n")
+		fmt.Fprintf(os.Stderr, "\t gzip (.gz)\n")
+		fmt.Fprintf(os.Stderr, "\t bzip2 (.bz2)\n")
+		fmt.Fprintf(os.Stderr, "\t xz (.xz)\n")
+		fmt.Fprintf(os.Stderr, "\t tar (.tar)\n")
+		fmt.Fprintf(os.Stderr, "\t tgz (.tar.gz)\n")
+		fmt.Fprintf(os.Stderr, "\t txz (.tar.xz)\n")
+		fmt.Fprintf(os.Stderr, "\t tbz2 (.tar.bz2)\n")
+		fmt.Fprintf(os.Stderr, "\n")
 	}
 
 	flag.Parse()
