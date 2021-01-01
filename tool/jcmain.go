@@ -101,8 +101,29 @@ func checkInFiles(files []string) ([]string, bool, error) {
 
 	m := make(map[string]bool)
 	n := make(map[string]int)
-	for _, f := range files {
-		_, err := os.Stat(f)
+	for _, tf := range files {
+		var f string
+
+		fi, err := os.Lstat(tf)
+		if err != nil {
+			return nil, haveSameName, err
+		}
+
+		JCLoggerDebug.Printf("%s file.Mode %v\n", tf, fi.Mode()&os.ModeType)
+		if fi.Mode()&os.ModeSymlink != 0 {
+			JCLoggerDebug.Printf("%s is symbolic link\n", tf)
+			cmd := exec.Command("readlink", "-f", tf)
+			rf, errstr, err := jc.RunCmdBuffer(cmd)
+			if err != nil {
+				return nil, haveSameName, fmt.Errorf("%s", errstr)
+			}
+			f = strings.TrimSuffix(fmt.Sprintf("%s", rf), "\n")
+		} else {
+			f = tf
+		}
+
+		JCLoggerDebug.Printf("Check %s \n", f)
+		_, err = os.Stat(f)
 		if err != nil {
 			return nil, haveSameName, errors.New(f + " is not found")
 		}
