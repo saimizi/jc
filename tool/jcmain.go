@@ -5,13 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"jc"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/saimizi/jc"
 )
 
 var (
