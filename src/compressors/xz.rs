@@ -6,7 +6,7 @@ use std::process::{Command, Stdio};
 use crate::core::compressor::Compressor;
 use crate::core::config::CompressionConfig;
 use crate::core::error::{JcError, JcResult};
-use crate::utils::{debug, generate_output_filename, info, move_file_if_needed};
+use crate::utils::{copy_to_dir, debug, generate_output_filename, info, move_file_if_needed};
 
 /// XZ compressor implementation
 #[derive(Debug, Clone)]
@@ -131,5 +131,52 @@ impl Compressor for XzCompressor {
 
     fn default_level(&self) -> u8 {
         6
+    }
+}
+
+impl XzCompressor {
+    /// Decompress in a specific working directory
+    pub fn decompress_in_dir(
+        &self,
+        input: &Path,
+        working_dir: &Path,
+        _config: &CompressionConfig,
+    ) -> JcResult<PathBuf> {
+        if !input.to_string_lossy().ends_with(".xz") {
+            return Err(JcError::InvalidExtension(
+                input.to_path_buf(),
+                "xz".to_string(),
+            ));
+        }
+
+        debug!(
+            "Decompressing {} with xz in working dir {}",
+            input.display(),
+            working_dir.display()
+        );
+
+        // Copy input file to working directory
+        let work_input = copy_to_dir(input, working_dir)?;
+
+        // Execute xz decompression in working directory
+        let mut cmd = Command::new("xz");
+        cmd.arg("-d").arg("-f").arg(&work_input);
+
+        let output = cmd
+            .output()
+            .map_err(|e| JcError::Other(format!("Failed to execute xz: {}", e)))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(JcError::DecompressionFailed {
+                tool: "xz".to_string(),
+                stderr: stderr.to_string(),
+            });
+        }
+
+        let output_path = work_input.with_extension("");
+
+        debug!("Decompressed to: {}", output_path.display());
+        Ok(output_path)
     }
 }

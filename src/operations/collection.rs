@@ -91,6 +91,7 @@ pub fn collect_and_compress(
         timestamp: collection_config.base.timestamp,
         move_to: None,
         show_output_size: false,
+        force: collection_config.base.force,
     };
 
     // Generate TAR filename

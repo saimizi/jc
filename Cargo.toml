@@ -21,9 +21,10 @@ env_logger = "0.10"
 # Date/time for timestamps
 chrono = "0.4"
 
-[dev-dependencies]
-# Testing utilities
+# Temporary directory management
 tempfile = "3.8"
+
+[dev-dependencies]
 assert_cmd = "2.0"
 predicates = "3.0"
 

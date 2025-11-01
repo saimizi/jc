@@ -8,6 +8,11 @@ use std::path::Path;
 use crate::core::compressor::Compressor;
 use crate::core::types::CompressionFormat;
 
+pub use bzip2::Bzip2Compressor;
+pub use gzip::GzipCompressor;
+pub use tar::TarCompressor;
+pub use xz::XzCompressor;
+
 /// Create a compressor instance for the given format
 pub fn create_compressor(format: CompressionFormat) -> Box<dyn Compressor> {
     match format {

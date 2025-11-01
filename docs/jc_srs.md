@@ -42,13 +42,17 @@ JC is a standalone command-line utility that wraps system compression tools (gzi
 ### 2.2 Product Features
 1. **Multi-Format Compression**: Support for GZIP, BZIP2, XZ, TAR, TGZ, TBZ2, TXZ
 2. **Multi-Format Decompression**: Automatic format detection and sequential decompression
-3. **Configurable Compression Levels**: User-selectable compression ratios (1-9)
-4. **Timestamp Appending**: Optional timestamp suffixes for output files
-5. **File Collection**: Combine multiple files into single archive
-6. **Output Relocation**: Move compressed files to specified directories
-7. **Concurrent Processing**: Parallel compression of multiple files
-8. **Symbolic Link Resolution**: Process actual files instead of symbolic links
-9. **Logging System**: Configurable logging with multiple severity levels
+3. **Isolated Decompression**: Temporary directory isolation prevents file conflicts
+4. **Force Overwrite**: Skip interactive prompts with --force/-f flag
+5. **Auto-Create Directories**: Automatically create destination directories with -C flag
+6. **Multi-File Archive Support**: Correctly handle TAR archives with multiple files
+7. **Configurable Compression Levels**: User-selectable compression ratios (1-9)
+8. **Timestamp Appending**: Optional timestamp suffixes for output files
+9. **File Collection**: Combine multiple files into single archive
+10. **Output Relocation**: Move compressed/decompressed files to specified directories
+11. **Concurrent Processing**: Parallel compression/decompression of multiple files
+12. **Symbolic Link Resolution**: Process actual files instead of symbolic links
+13. **Logging System**: Configurable logging with multiple severity levels
 
 ### 2.3 User Classes and Characteristics
 - **System Administrators**: Need reliable, scriptable compression tools
@@ -238,6 +242,124 @@ JC is a standalone command-line utility that wraps system compression tools (gzi
 
 **Error Conditions**:
 - Any individual file decompression failure
+
+##### FR-DECOMP-004: Temporary Directory Isolation
+**Description**: The system shall use isolated temporary directories for all decompression operations to prevent conflicts with existing files.
+
+**Inputs**:
+- Compressed file path
+- Optional: Destination directory
+
+**Processing**:
+1. Create unique temporary directory in /tmp
+2. Copy input file to temporary directory
+3. Perform all decompression operations in temporary directory
+4. For compound formats, perform iterative decompression in same temporary directory
+5. Copy final decompressed output to destination
+6. Automatically clean up temporary directory on completion or error
+
+**Outputs**:
+- Decompressed file(s) in final destination
+- No residual temporary files
+
+**Benefits**:
+- Prevents conflicts with existing intermediate files (e.g., .tar from .tar.gz)
+- Isolated working environment for each decompression operation
+- Automatic cleanup even on interruption (RAII pattern)
+- Multiple concurrent decompressions don't interfere with each other
+
+**Error Conditions**:
+- Failed to create temporary directory
+- Insufficient /tmp space
+
+##### FR-DECOMP-005: Force Overwrite Option
+**Description**: The system shall provide a force flag to skip overwrite prompts during decompression.
+
+**Inputs**:
+- Compressed file path
+- Optional: --force/-f flag
+- Optional: Destination directory
+
+**Processing**:
+1. When force flag is NOT specified:
+   - Check if destination file/directory already exists
+   - For multi-file archives: prompt for each individual file
+   - For single files: prompt once before extraction
+   - Allow user to skip individual files (respond 'n')
+   - Allow user to overwrite files (respond 'y')
+2. When force flag IS specified:
+   - Skip all overwrite prompts
+   - Automatically overwrite existing files
+
+**Outputs**:
+- Decompressed files (existing files overwritten or skipped based on user choice)
+- Log messages indicating skipped files
+
+**User Interaction**:
+- Prompt format: "File 'path' already exists. Overwrite? (y/n): "
+- Case-insensitive responses: y/yes/n/no
+
+**Error Conditions**:
+- User aborts decompression (responds 'n' to overwrite prompt)
+
+##### FR-DECOMP-006: Automatic Destination Directory Creation
+**Description**: The system shall automatically create destination directories specified with -C flag if they don't exist.
+
+**Inputs**:
+- Compressed file path
+- Destination directory path (via -C flag)
+
+**Processing**:
+1. Check if destination directory exists
+2. If not exists: create directory and all parent directories (like mkdir -p)
+3. If exists: verify it is a directory and writable
+4. Proceed with decompression to the directory
+
+**Outputs**:
+- Created directory structure
+- Decompressed files in destination
+
+**Benefits**:
+- User-friendly: no need to pre-create directories
+- Consistent with standard tools (tar -C)
+- Supports nested paths
+
+**Error Conditions**:
+- Failed to create directory (permission denied)
+- Path exists but is not a directory
+- Directory not writable
+
+##### FR-DECOMP-007: Multi-File Archive Extraction
+**Description**: The system shall correctly handle TAR archives containing multiple files or directories.
+
+**Inputs**:
+- TAR or compound TAR archive (.tar, .tar.gz, .tar.bz2, .tar.xz)
+- Optional: Destination directory via -C flag
+
+**Processing**:
+1. Extract all files from archive to temporary directory
+2. Detect extraction result:
+   - Single file: copy file to destination
+   - Single directory: copy directory to destination
+   - Multiple files: copy all files directly to destination
+3. When using -C flag with multiple files:
+   - Extract files directly to specified directory
+   - Do NOT create subdirectory based on archive name
+4. When NOT using -C flag with multiple files:
+   - Create subdirectory based on archive name
+   - Extract files into that subdirectory
+
+**Outputs**:
+- All extracted files in correct locations
+
+**Examples**:
+- `jc -d multi.tar.gz -C output/` → files in `output/file1.txt`, `output/file2.txt`
+- `jc -d multi.tar.gz` → files in `multi/file1.txt`, `multi/file2.txt`
+- `jc -d single.tar.gz -C output/` → file in `output/single.txt`
+
+**Error Conditions**:
+- Corrupted TAR archive
+- Extraction failure
 
 #### 3.1.3 Configuration and Options
 

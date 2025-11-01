@@ -6,7 +6,7 @@ use std::process::{Command, Stdio};
 use crate::core::compressor::Compressor;
 use crate::core::config::CompressionConfig;
 use crate::core::error::{JcError, JcResult};
-use crate::utils::{debug, generate_output_filename, info, move_file_if_needed};
+use crate::utils::{copy_to_dir, debug, generate_output_filename, info, move_file_if_needed};
 
 /// GZIP compressor implementation
 #[derive(Debug, Clone)]
@@ -142,5 +142,54 @@ impl Compressor for GzipCompressor {
 
     fn default_level(&self) -> u8 {
         6
+    }
+}
+
+impl GzipCompressor {
+    /// Decompress in a specific working directory
+    pub fn decompress_in_dir(
+        &self,
+        input: &Path,
+        working_dir: &Path,
+        _config: &CompressionConfig,
+    ) -> JcResult<PathBuf> {
+        // Validate extension
+        if !input.to_string_lossy().ends_with(".gz") {
+            return Err(JcError::InvalidExtension(
+                input.to_path_buf(),
+                "gz".to_string(),
+            ));
+        }
+
+        debug!(
+            "Decompressing {} with gzip in working dir {}",
+            input.display(),
+            working_dir.display()
+        );
+
+        // Copy input file to working directory
+        let work_input = copy_to_dir(input, working_dir)?;
+
+        // Execute gzip decompression in working directory
+        let mut cmd = Command::new("gzip");
+        cmd.arg("-d").arg("-f").arg(&work_input);
+
+        let output = cmd
+            .output()
+            .map_err(|e| JcError::Other(format!("Failed to execute gzip: {}", e)))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(JcError::DecompressionFailed {
+                tool: "gzip".to_string(),
+                stderr: stderr.to_string(),
+            });
+        }
+
+        // Determine output filename (remove .gz)
+        let output_path = work_input.with_extension("");
+
+        debug!("Decompressed to: {}", output_path.display());
+        Ok(output_path)
     }
 }

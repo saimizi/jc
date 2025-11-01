@@ -11,6 +11,10 @@ pub struct CliArgs {
     #[arg(short = 'd', long)]
     pub decompress: bool,
 
+    /// Force overwrite without prompting
+    #[arg(short = 'f', long)]
+    pub force: bool,
+
     /// Compression command
     #[arg(short = 'c', long, default_value = "tgz")]
     pub command: String,
