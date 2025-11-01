@@ -1,0 +1,6 @@
+# Exclude GitHub workflows from source tarballs
+/.github export-ignore
+
+# Exclude git-specific files from source tarballs
+/.gitignore export-ignore
+/.gitattributes export-ignore
