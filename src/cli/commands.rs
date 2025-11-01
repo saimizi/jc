@@ -18,7 +18,8 @@ pub fn execute(args: CliArgs) -> JcResult<()> {
 
     let config = CompressionConfig::new()
         .with_level(args.level)
-        .with_timestamp(timestamp);
+        .with_timestamp(timestamp)
+        .with_force(args.force);
 
     let config = if let Some(ref move_to) = args.move_to {
         validate_move_to(move_to)?;

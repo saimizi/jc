@@ -2,6 +2,8 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use tempfile::TempDir;
+
 use crate::core::config::TimestampOption;
 use crate::core::error::{JcError, JcResult};
 use crate::utils::timestamp::generate_timestamp;
@@ -55,9 +57,17 @@ pub fn move_file(source: &Path, dest_dir: &Path) -> JcResult<PathBuf> {
 
     let dest_path = dest_dir.join(filename);
 
-    fs::rename(source, &dest_path)?;
-
-    Ok(dest_path)
+    // Try rename first (fast, atomic), fall back to copy+delete for cross-device
+    match fs::rename(source, &dest_path) {
+        Ok(_) => Ok(dest_path),
+        Err(e) if e.raw_os_error() == Some(18) => {
+            // EXDEV (cross-device link) - fall back to copy + delete
+            fs::copy(source, &dest_path)?;
+            fs::remove_file(source)?;
+            Ok(dest_path)
+        }
+        Err(e) => Err(JcError::Io(e)),
+    }
 }
 
 /// Recursively copy file or directory
@@ -72,6 +82,24 @@ pub fn copy_recursive(src: &Path, dst: &Path) -> io::Result<()> {
         }
     } else {
         fs::copy(src, dst)?;
+    }
+    Ok(())
+}
+
+/// Copy directory contents excluding specific files
+pub fn copy_directory_contents_except(src: &Path, dst: &Path, exclude: &Path) -> io::Result<()> {
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let src_path = entry.path();
+
+        // Skip the excluded file
+        if src_path == exclude {
+            continue;
+        }
+
+        let dst_path = dst.join(entry.file_name());
+        copy_recursive(&src_path, &dst_path)?;
     }
     Ok(())
 }
@@ -100,4 +128,30 @@ pub fn create_temp_dir(prefix: &str) -> JcResult<PathBuf> {
     fs::create_dir(&temp_path).map_err(|e| JcError::TempDirFailed(e.to_string()))?;
 
     Ok(temp_path)
+}
+
+/// Create a temporary directory for decompression work in /tmp
+/// Returns a TempDir that will be automatically cleaned up when dropped
+pub fn create_decompress_temp_dir() -> JcResult<TempDir> {
+    TempDir::new_in("/tmp")
+        .map_err(|e| JcError::TempDirFailed(format!("Failed to create temp directory: {}", e)))
+}
+
+/// Copy a file to a target directory, preserving the filename
+pub fn copy_to_dir(source: &Path, target_dir: &Path) -> JcResult<PathBuf> {
+    let filename = source
+        .file_name()
+        .ok_or_else(|| JcError::Other("Invalid source filename".to_string()))?;
+
+    let dest_path = target_dir.join(filename);
+
+    // Check if source and destination are the same file
+    if source.canonicalize().ok() == dest_path.canonicalize().ok() {
+        // File is already in the target directory, no need to copy
+        return Ok(dest_path);
+    }
+
+    fs::copy(source, &dest_path).map_err(|e| JcError::Io(e))?;
+
+    Ok(dest_path)
 }

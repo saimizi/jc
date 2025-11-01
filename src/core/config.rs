@@ -35,6 +35,9 @@ pub struct CompressionConfig {
 
     /// Show output file size (future feature)
     pub show_output_size: bool,
+
+    /// Force overwrite without prompting
+    pub force: bool,
 }
 
 impl Default for CompressionConfig {
@@ -44,6 +47,7 @@ impl Default for CompressionConfig {
             timestamp: TimestampOption::None,
             move_to: None,
             show_output_size: false,
+            force: false,
         }
     }
 }
@@ -65,6 +69,11 @@ impl CompressionConfig {
 
     pub fn with_move_to(mut self, path: PathBuf) -> Self {
         self.move_to = Some(path);
+        self
+    }
+
+    pub fn with_force(mut self, force: bool) -> Self {
+        self.force = force;
         self
     }
 }

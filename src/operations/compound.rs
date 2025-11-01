@@ -26,6 +26,7 @@ pub fn compress_compound(
         timestamp: config.timestamp,
         move_to: None, // Don't move intermediate file
         show_output_size: false,
+        force: config.force,
     };
 
     let tar_output = tar_compressor.compress(input, &tar_config)?;

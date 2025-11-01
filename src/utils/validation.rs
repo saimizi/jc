@@ -95,7 +95,9 @@ fn resolve_symlink(path: &Path) -> JcResult<PathBuf> {
 /// Validate destination directory
 pub fn validate_move_to(path: &Path) -> JcResult<()> {
     if !path.exists() {
-        return Err(JcError::MoveToError("Directory does not exist".to_string()));
+        // Create the directory if it doesn't exist
+        fs::create_dir_all(path)
+            .map_err(|e| JcError::MoveToError(format!("Failed to create directory: {}", e)))?;
     }
 
     if !path.is_dir() {

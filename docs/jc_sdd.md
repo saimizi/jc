@@ -234,6 +234,9 @@ pub struct CompressionConfig {
 
     /// Show output file size (future feature)
     pub show_output_size: bool,
+
+    /// Force overwrite without prompting during decompression
+    pub force: bool,
 }
 
 impl Default for CompressionConfig {
@@ -243,6 +246,7 @@ impl Default for CompressionConfig {
             timestamp: TimestampOption::None,
             move_to: None,
             show_output_size: false,
+            force: false,
         }
     }
 }
@@ -724,12 +728,50 @@ impl Compressor for GzipCompressor {
 }
 ```
 
+**Additional Methods for Isolated Decompression**:
+
+Each compressor also implements a `decompress_in_dir` method for working directory isolation:
+
+```rust
+impl GzipCompressor {
+    pub fn decompress_in_dir(
+        &self,
+        input: &Path,
+        working_dir: &Path,
+        _config: &CompressionConfig,
+    ) -> JcResult<PathBuf> {
+        // Copy input file to working directory
+        let work_input = copy_to_dir(input, working_dir)?;
+
+        // Execute gzip decompression with -f flag to force overwrite
+        let mut cmd = Command::new("gzip");
+        cmd.arg("-d").arg("-f").arg(&work_input);
+
+        let output = cmd.output()
+            .map_err(|e| JcError::Other(format!("Failed to execute gzip: {}", e)))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(JcError::DecompressionFailed {
+                tool: "gzip".to_string(),
+                stderr: stderr.to_string(),
+            });
+        }
+
+        let output_path = work_input.with_extension("");
+        Ok(output_path)
+    }
+}
+```
+
 **Design Rationale**:
 - **Streaming I/O**: Use `stdout` pipe to stream compressed data
 - **Buffered writes**: Efficient I/O with `BufWriter`
 - **Error handling**: Convert process errors to `JcError`
 - **Validation**: Check input before processing
 - **Logging**: Debug and info messages for visibility
+- **Isolated Decompression**: `decompress_in_dir` operates in temporary directory to prevent conflicts
+- **Force Overwrite**: Uses `-f` flag to overwrite files in working directory without prompting
 
 #### 3.2.2 TAR Implementation (`src/compressors/tar.rs`)
 
@@ -1009,74 +1051,186 @@ pub fn compress_files(
 #### 3.3.2 Decompression Operations (`src/operations/decompress.rs`)
 
 ```rust
-use std::path::{Path, PathBuf};
 use rayon::prelude::*;
+use std::fs;
+use std::path::PathBuf;
 
+use crate::compressors::{detect_format, Bzip2Compressor, GzipCompressor, TarCompressor, XzCompressor};
 use crate::core::config::CompressionConfig;
 use crate::core::error::{JcError, JcResult};
-use crate::compressors::{create_compressor, detect_format};
-use crate::utils::logger::{debug, error, info};
-use crate::utils::fs;
+use crate::utils::{create_decompress_temp_dir, debug, error, info, prompt_overwrite};
 
-/// Decompress a single file, handling compound formats
-pub fn decompress_file(
+/// Helper function to decompress in a working directory based on format
+fn decompress_in_working_dir(
+    format: crate::core::types::CompressionFormat,
     input: &PathBuf,
+    working_dir: &PathBuf,
     config: &CompressionConfig,
 ) -> JcResult<PathBuf> {
+    use crate::core::types::CompressionFormat;
+
+    match format {
+        CompressionFormat::Gzip => {
+            let compressor = GzipCompressor::new();
+            compressor.decompress_in_dir(input, working_dir, config)
+        }
+        CompressionFormat::Bzip2 => {
+            let compressor = Bzip2Compressor::new();
+            compressor.decompress_in_dir(input, working_dir, config)
+        }
+        CompressionFormat::Xz => {
+            let compressor = XzCompressor::new();
+            compressor.decompress_in_dir(input, working_dir, config)
+        }
+        CompressionFormat::Tar => {
+            let compressor = TarCompressor::new();
+            compressor.decompress_in_dir(input, working_dir, config)
+        }
+    }
+}
+
+/// Decompress a single file, handling compound formats
+pub fn decompress_file(input: &PathBuf, config: &CompressionConfig) -> JcResult<PathBuf> {
+    // Create a temporary directory for decompression work
+    let temp_dir = create_decompress_temp_dir()?;
+    let temp_dir_path = temp_dir.path().to_path_buf();
+
+    debug!("Created temp directory: {}", temp_dir_path.display());
+
     let mut current_file = input.clone();
-    let mut temp_files = Vec::new();
+    let mut current_in_temp = false;
 
     // Iteratively decompress until no more compression detected
     loop {
-        let format = detect_format(&current_file)
-            .ok_or_else(|| JcError::InvalidExtension(
+        let format = detect_format(&current_file).ok_or_else(|| {
+            JcError::InvalidExtension(
                 current_file.clone(),
                 "supported compression format".to_string(),
-            ))?;
+            )
+        })?;
 
-        debug!("Detected format: {:?} for {}", format, current_file.display());
+        info!(
+            "Decompression iteration: format={:?}, current_file={}",
+            format,
+            current_file.display()
+        );
 
-        let compressor = create_compressor(format);
-        let output = compressor.decompress(&current_file, config)?;
+        // Decompress in temp directory
+        let output = decompress_in_working_dir(format, &current_file, &temp_dir_path, config)?;
 
-        // If this was an intermediate file, mark for cleanup
-        if current_file != *input {
-            temp_files.push(current_file.clone());
-        }
+        info!("Decompressed to: {}", output.display());
 
         current_file = output;
+        current_in_temp = true;
 
         // Check if output has another compression layer
         if detect_format(&current_file).is_none() {
+            info!("No more compression layers detected");
             break;
         }
     }
 
-    // Clean up temporary intermediate files
-    for temp in temp_files {
-        if let Err(e) = fs::remove_file_silent(&temp) {
-            debug!("Failed to remove temp file {}: {}", temp.display(), e);
+    // Determine final destination
+    let final_dest = if let Some(ref move_to) = config.move_to {
+        if current_file.is_dir() && current_file == temp_dir_path {
+            // Multiple files extracted - put them directly in move_to
+            move_to.clone()
+        } else {
+            // Single file or directory - create subdirectory
+            let mut dest = input.clone();
+            while detect_format(&dest).is_some() {
+                dest = dest.with_extension("");
+            }
+            let filename = dest
+                .file_name()
+                .ok_or_else(|| JcError::Other("Invalid output filename".to_string()))?;
+            move_to.join(filename)
+        }
+    } else {
+        // Determine output based on input filename
+        let mut dest = input.clone();
+        // Remove all compression extensions
+        while detect_format(&dest).is_some() {
+            dest = dest.with_extension("");
+        }
+        dest
+    };
+
+    debug!("Final destination: {}", final_dest.display());
+
+    // Move from temp directory to final destination
+    if current_in_temp {
+        if current_file.is_dir() {
+            if current_file == temp_dir_path {
+                // Multiple loose files from TAR - copy contents directly
+                fs::create_dir_all(&final_dest).map_err(|e| JcError::Io(e))?;
+                for entry in fs::read_dir(&current_file).map_err(|e| JcError::Io(e))? {
+                    let entry = entry.map_err(|e| JcError::Io(e))?;
+                    let src_path = entry.path();
+                    let dst_path = final_dest.join(entry.file_name());
+
+                    // Check if individual file exists and prompt for overwrite
+                    if dst_path.exists() && !config.force {
+                        if !prompt_overwrite(&dst_path)? {
+                            info!("Skipping {}", dst_path.display());
+                            continue;
+                        }
+                    }
+
+                    use crate::utils::copy_recursive;
+                    if src_path.is_dir() {
+                        copy_recursive(&src_path, &dst_path).map_err(|e| JcError::Io(e))?;
+                    } else {
+                        fs::copy(&src_path, &dst_path).map_err(|e| JcError::Io(e))?;
+                    }
+                }
+                info!("Decompressed {} files to: {}",
+                      fs::read_dir(&final_dest).map(|d| d.count()).unwrap_or(0),
+                      final_dest.display());
+            } else {
+                // Subdirectory extracted from TAR
+                if final_dest.exists() && !config.force {
+                    if !prompt_overwrite(&final_dest)? {
+                        return Err(JcError::Other(format!(
+                            "Decompression aborted: directory already exists: {}",
+                            final_dest.display()
+                        )));
+                    }
+                }
+                use crate::utils::copy_recursive;
+                copy_recursive(&current_file, &final_dest).map_err(|e| JcError::Io(e))?;
+                info!("Decompressed directory: {}", final_dest.display());
+            }
+        } else {
+            // Copy single file
+            if final_dest.exists() && !config.force {
+                if !prompt_overwrite(&final_dest)? {
+                    return Err(JcError::Other(format!(
+                        "Decompression aborted: file already exists: {}",
+                        final_dest.display()
+                    )));
+                }
+            }
+            fs::copy(&current_file, &final_dest).map_err(|e| JcError::Io(e))?;
+            info!("Decompressed file: {}", final_dest.display());
         }
     }
 
-    Ok(current_file)
+    // temp_dir will be automatically cleaned up when it goes out of scope
+    Ok(final_dest)
 }
 
 /// Decompress multiple files concurrently
-pub fn decompress_files(
-    inputs: Vec<PathBuf>,
-    config: CompressionConfig,
-) -> Vec<JcResult<PathBuf>> {
+pub fn decompress_files(inputs: Vec<PathBuf>, config: CompressionConfig) -> Vec<JcResult<PathBuf>> {
     info!("Decompressing {} files", inputs.len());
 
-    inputs.par_iter()
-        .map(|input| {
-            match decompress_file(input, &config) {
-                Ok(output) => Ok(output),
-                Err(e) => {
-                    error!("Failed to decompress {}: {}", input.display(), e);
-                    Err(e)
-                }
+    inputs
+        .par_iter()
+        .map(|input| match decompress_file(input, &config) {
+            Ok(output) => Ok(output),
+            Err(e) => {
+                error!("Failed to decompress {}: {}", input.display(), e);
+                Err(e)
             }
         })
         .collect()
@@ -1084,10 +1238,28 @@ pub fn decompress_files(
 ```
 
 **Design Rationale**:
-- **Iterative decompression**: Handle compound formats (tar.gz, tar.bz2, etc.)
-- **Temporary file cleanup**: Remove intermediate files
-- **Format detection**: Automatic detection from extension
-- **Parallel processing**: Use rayon for concurrent decompression
+- **Temporary Directory Isolation**: All decompression work happens in isolated /tmp directories
+  - Uses `tempfile::TempDir` for automatic RAII-based cleanup
+  - Prevents conflicts with existing files in working directory
+  - Each decompression gets unique temporary directory
+  - Cleanup happens automatically even on panic or early return
+- **Iterative Decompression**: Handle compound formats (tar.gz, tar.bz2, tar.xz)
+  - Detects compression layers from file extension
+  - Decompresses each layer in sequence within same temp directory
+  - Continues until no more compression detected
+- **Multi-File Archive Support**: Correctly handles TAR archives with multiple files
+  - Detects single file vs multiple files vs single directory
+  - For multiple files with -C flag: extracts directly to destination
+  - For multiple files without -C: creates subdirectory named after archive
+  - For single files: always extracts to filename without extensions
+- **Overwrite Protection with Force Flag**: Interactive prompts unless --force/-f specified
+  - Multi-file extraction: prompts for each individual file
+  - Single file extraction: prompts once before extraction
+  - User can skip files by responding 'n'
+  - Skipped files are logged for transparency
+- **Format Detection**: Automatic detection from file extension
+- **Parallel Processing**: Use rayon for concurrent decompression of multiple files
+- **Error Handling**: Comprehensive error messages for all failure scenarios
 
 #### 3.3.3 Compound Format Handling (`src/operations/compound.rs`)
 
@@ -1478,9 +1650,71 @@ pub fn create_temp_dir(prefix: &str) -> JcResult<PathBuf> {
 
     Ok(temp_path)
 }
+
+/// Create a temporary directory for decompression work in /tmp
+/// Returns a TempDir that will be automatically cleaned up when dropped (RAII)
+pub fn create_decompress_temp_dir() -> JcResult<TempDir> {
+    use tempfile::TempDir;
+
+    TempDir::new_in("/tmp")
+        .map_err(|e| JcError::TempDirFailed(format!("Failed to create temp directory: {}", e)))
+}
+
+/// Copy a file to a target directory, preserving the filename
+pub fn copy_to_dir(source: &Path, target_dir: &Path) -> JcResult<PathBuf> {
+    let filename = source
+        .file_name()
+        .ok_or_else(|| JcError::Other("Invalid source filename".to_string()))?;
+
+    let dest_path = target_dir.join(filename);
+
+    // Check if source and destination are the same file
+    if source.canonicalize().ok() == dest_path.canonicalize().ok() {
+        // File is already in the target directory, no need to copy
+        return Ok(dest_path);
+    }
+
+    fs::copy(source, &dest_path)
+        .map_err(|e| JcError::Io(e))?;
+
+    Ok(dest_path)
+}
 ```
 
-#### 3.4.3 Timestamp Generation (`src/utils/timestamp.rs`)
+**Key Features**:
+- **RAII Temporary Directories**: `create_decompress_temp_dir` uses `tempfile::TempDir` for automatic cleanup
+- **Same-File Detection**: `copy_to_dir` checks if source and destination are the same to avoid unnecessary copying
+- **Recursive Copy**: `copy_recursive` handles both files and directories
+- **Error Handling**: All functions return `JcResult` for consistent error propagation
+
+#### 3.4.3 User Prompt Utilities (`src/utils/prompt.rs`)
+
+```rust
+use std::io::{self, Write};
+use std::path::Path;
+
+use crate::core::error::{JcError, JcResult};
+
+/// Prompt user for overwrite confirmation
+pub fn prompt_overwrite(file_path: &Path) -> JcResult<bool> {
+    print!("File '{}' already exists. Overwrite? (y/n): ", file_path.display());
+    io::stdout().flush().map_err(|e| JcError::Io(e))?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).map_err(|e| JcError::Io(e))?;
+
+    let response = input.trim().to_lowercase();
+    Ok(response == "y" || response == "yes")
+}
+```
+
+**Key Features**:
+- **Interactive Prompts**: Ask user for confirmation before overwriting files
+- **Case-Insensitive**: Accepts both 'y'/'Y' and 'yes'/'YES'
+- **Error Handling**: Proper handling of I/O errors
+- **User-Friendly**: Clear prompt message showing file path
+
+#### 3.4.4 Timestamp Generation (`src/utils/timestamp.rs`)
 
 ```rust
 use chrono::Local;
@@ -1505,7 +1739,7 @@ pub fn generate_timestamp(option: TimestampOption) -> String {
 }
 ```
 
-#### 3.4.4 Input Validation (`src/utils/validation.rs`)
+#### 3.4.5 Input Validation (`src/utils/validation.rs`)
 
 ```rust
 use std::path::{Path, PathBuf};
@@ -1606,10 +1840,12 @@ fn resolve_symlink(path: &Path) -> JcResult<PathBuf> {
     Ok(PathBuf::from(real_path))
 }
 
-/// Validate destination directory
+/// Validate destination directory (creates it if it doesn't exist)
 pub fn validate_move_to(path: &Path) -> JcResult<()> {
     if !path.exists() {
-        return Err(JcError::MoveToError("Directory does not exist".to_string()));
+        // Create the directory if it doesn't exist
+        fs::create_dir_all(path)
+            .map_err(|e| JcError::MoveToError(format!("Failed to create directory: {}", e)))?;
     }
 
     if !path.is_dir() {
@@ -1674,6 +1910,10 @@ pub struct CliArgs {
     /// Timestamp option: 0=none, 1=date, 2=datetime, 3=nanoseconds
     #[arg(short = 't', long, default_value = "0")]
     pub timestamp: u8,
+
+    /// Force overwrite without prompting
+    #[arg(short = 'f', long)]
+    pub force: bool,
 
     /// Input files or directories
     #[arg(required = true)]
