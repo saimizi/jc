@@ -87,6 +87,7 @@ pub fn copy_recursive(src: &Path, dst: &Path) -> io::Result<()> {
 }
 
 /// Copy directory contents excluding specific files
+#[allow(dead_code)]
 pub fn copy_directory_contents_except(src: &Path, dst: &Path, exclude: &Path) -> io::Result<()> {
     fs::create_dir_all(dst)?;
     for entry in fs::read_dir(src)? {

@@ -4,6 +4,7 @@ use crate::core::config::CompressionConfig;
 use crate::core::error::JcResult;
 
 /// Common interface for all compression/decompression implementations
+#[allow(dead_code)]
 pub trait Compressor: Send + Sync {
     /// Get the name of this compressor
     fn name(&self) -> &'static str;
@@ -28,6 +29,7 @@ pub trait Compressor: Send + Sync {
 }
 
 /// Extended trait for compressors that support multi-file operations
+#[allow(dead_code)]
 pub trait MultiFileCompressor: Compressor {
     /// Compress multiple files into a single archive
     fn compress_multi(

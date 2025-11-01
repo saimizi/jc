@@ -1,0 +1,184 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Cargo.toml'
+
+jobs:
+  check-version-change:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.changed }}
+      new_version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if version changed
+        id: check
+        run: |
+          # Get the version from current Cargo.toml
+          CURRENT_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+
+          # Get the version from the previous commit (before merge)
+          git checkout HEAD~1
+          PREVIOUS_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          git checkout -
+
+          echo "Previous version: $PREVIOUS_VERSION"
+          echo "Current version: $CURRENT_VERSION"
+
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  create-release:
+    needs: check-version-change
+    if: needs.check-version-change.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gzip bzip2 xz-utils tar
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Run tests
+        run: cargo test
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION="${{ needs.check-version-change.outputs.new_version }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Find the previous tag
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            # No previous tag, get all commits
+            echo "## Changes" > changelog.md
+            git log --pretty=format:"- %s (%h)" >> changelog.md
+          else
+            # Get commits since previous tag
+            echo "## Changes since $PREVIOUS_TAG" > changelog.md
+            git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" >> changelog.md
+          fi
+
+          echo "" >> changelog.md
+          echo "" >> changelog.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...v${VERSION}" >> changelog.md
+
+          cat changelog.md
+
+      - name: Create source tarball
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git archive --format=tar.gz --prefix="jc-${VERSION}/" HEAD -o "jc-${VERSION}.tar.gz"
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+
+      - name: Create Cargo.toml metadata for debian package
+        run: |
+          # Backup original Cargo.toml
+          cp Cargo.toml Cargo.toml.bak
+
+          # Add debian package metadata
+          cat >> Cargo.toml << 'DEBEOF'
+
+          [package.metadata.deb]
+          maintainer = "JC Contributors <noreply@github.com>"
+          copyright = "2025, JC Contributors <noreply@github.com>"
+          license-file = ["LICENSE", "0"]
+          extended-description = """\
+          Just Compress (jc) is a unified compression utility that simplifies \
+          working with various compression formats including gzip, bzip2, xz, \
+          and tar archives. It provides a consistent interface for compression \
+          and decompression operations."""
+          depends = "gzip, bzip2, xz-utils, tar"
+          section = "utils"
+          priority = "optional"
+          assets = [
+              ["target/release/jc", "usr/bin/", "755"],
+          ]
+          DEBEOF
+
+      - name: Build Debian package for x86_64
+        run: |
+          cargo deb --target x86_64-unknown-linux-gnu
+
+          # Find the generated .deb file
+          DEB_FILE=$(find target/x86_64-unknown-linux-gnu/debian -name "*.deb" | head -1)
+
+          if [ -z "$DEB_FILE" ]; then
+            # If not found in target directory, try target/debian
+            DEB_FILE=$(find target/debian -name "*.deb" | head -1)
+          fi
+
+          if [ -n "$DEB_FILE" ]; then
+            VERSION="${{ steps.version.outputs.version }}"
+            cp "$DEB_FILE" "jc_${VERSION}_amd64.deb"
+            echo "Debian package created: jc_${VERSION}_amd64.deb"
+            ls -lh "jc_${VERSION}_amd64.deb"
+          else
+            echo "Error: Debian package not found"
+            exit 1
+          fi
+
+      - name: Restore Cargo.toml
+        if: always()
+        run: |
+          if [ -f Cargo.toml.bak ]; then
+            mv Cargo.toml.bak Cargo.toml
+          fi
+
+      - name: Create git tag
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release-${{ steps.version.outputs.version }}
+          body_path: changelog.md
+          files: |
+            jc-${{ steps.version.outputs.version }}.tar.gz
+            jc_${{ steps.version.outputs.version }}_amd64.deb
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

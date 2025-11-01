@@ -1,6 +1,6 @@
 [package]
 name = "jc"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["JC Contributors"]
 description = "Just Compress - A unified compression utility"
