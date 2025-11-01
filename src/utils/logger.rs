@@ -34,4 +34,4 @@ pub fn init_logger() {
 }
 
 // Re-export log macros for convenience
-pub use log::{debug, error, info, warn};
+pub use log::{debug, error, info};

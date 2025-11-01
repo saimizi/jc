@@ -11,6 +11,7 @@ pub enum CompressionFormat {
 
 impl CompressionFormat {
     /// Get file extension for this format
+    #[allow(dead_code)]
     pub fn extension(&self) -> &'static str {
         match self {
             CompressionFormat::Gzip => "gz",
@@ -99,6 +100,7 @@ impl CompoundFormat {
 
 /// Operation mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum OperationMode {
     Compress,
     Decompress,
@@ -108,14 +110,17 @@ pub enum OperationMode {
 #[derive(Debug, Clone)]
 pub struct InputFile {
     /// Original path provided by user
+    #[allow(dead_code)]
     pub original_path: PathBuf,
 
     /// Resolved real path (after symlink resolution)
     pub real_path: PathBuf,
 
     /// File basename
+    #[allow(dead_code)]
     pub basename: String,
 
     /// Whether this was a symbolic link
+    #[allow(dead_code)]
     pub was_symlink: bool,
 }

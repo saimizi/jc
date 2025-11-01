@@ -34,6 +34,7 @@ pub struct CompressionConfig {
     pub move_to: Option<PathBuf>,
 
     /// Show output file size (future feature)
+    #[allow(dead_code)]
     pub show_output_size: bool,
 
     /// Force overwrite without prompting

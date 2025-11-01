@@ -54,6 +54,7 @@ pub fn validate_input_files(paths: Vec<PathBuf>) -> JcResult<Vec<InputFile>> {
 }
 
 /// Check if there are duplicate basenames
+#[allow(dead_code)]
 pub fn check_duplicate_basenames(files: &[InputFile]) -> Option<Vec<String>> {
     let mut basename_counts: HashMap<&str, usize> = HashMap::new();
 
