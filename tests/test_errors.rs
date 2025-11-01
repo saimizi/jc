@@ -131,11 +131,12 @@ fn test_decompress_no_input_files() {
 // Invalid Directory Tests
 
 #[test]
-fn test_move_to_nonexistent_directory() {
+fn test_move_to_nonexistent_directory_auto_creates() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
     let nonexistent_dir = temp_dir.path().join("does_not_exist");
 
+    // Should auto-create the directory and succeed
     jc_command()
         .arg("-c")
         .arg("gzip")
@@ -143,7 +144,11 @@ fn test_move_to_nonexistent_directory() {
         .arg(&nonexistent_dir)
         .arg(&test_file)
         .assert()
-        .failure();
+        .success();
+
+    // Verify directory was created and file is there
+    assert!(dir_exists(&nonexistent_dir));
+    assert!(file_exists(&nonexistent_dir.join("test.txt.gz")));
 }
 
 #[test]
