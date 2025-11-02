@@ -245,7 +245,25 @@ impl MultiFileCompressor for TarCompressor {
 
         info!("Creating multi-file TAR archive: {}", output_path.display());
 
+        // Get the common parent directory from the first input
+        let parent_dir = inputs[0]
+            .parent()
+            .ok_or_else(|| JcError::Other("Invalid input path".to_string()))?;
+
+        // Verify all inputs have the same parent directory
+        for input in inputs {
+            let input_parent = input
+                .parent()
+                .ok_or_else(|| JcError::Other("Invalid input path".to_string()))?;
+            if input_parent != parent_dir {
+                return Err(JcError::Other(
+                    "All inputs must be in the same directory".to_string(),
+                ));
+            }
+        }
+
         let mut cmd = Command::new("tar");
+        cmd.arg("-C").arg(parent_dir);
         cmd.arg("-cf").arg(&output_path);
 
         for input in inputs {
