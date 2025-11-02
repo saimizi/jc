@@ -380,3 +380,183 @@ fn test_compound_formats_preserve_originals() {
         .success();
     assert_eq!(read_file(&test_file), original_content);
 }
+
+// Multi-file archive tests (-A flag)
+
+#[test]
+fn test_tgz_compress_multiple_files_with_archive_flag() {
+    let temp_dir = TempDir::new().unwrap();
+    let file1 = create_test_file(temp_dir.path(), "file1.txt", b"Content 1");
+    let file2 = create_test_file(temp_dir.path(), "file2.txt", b"Content 2");
+    let file3 = create_test_file(temp_dir.path(), "file3.txt", b"Content 3");
+
+    jc_command()
+        .arg("-c")
+        .arg("tgz")
+        .arg("-A")
+        .arg("archive")
+        .arg(&file1)
+        .arg(&file2)
+        .arg(&file3)
+        .arg("-C")
+        .arg(temp_dir.path())
+        .assert()
+        .success();
+
+    let archive_file = temp_dir.path().join("archive.tar.gz");
+    assert!(file_exists(&archive_file), "TGZ archive should exist");
+
+    // Verify it's a valid gzip file
+    let content = read_file(&archive_file);
+    assert!(
+        content.len() >= 2 && content[0] == 0x1f && content[1] == 0x8b,
+        "TGZ archive should have gzip magic number"
+    );
+}
+
+#[test]
+fn test_tbz2_compress_multiple_files_with_archive_flag() {
+    let temp_dir = TempDir::new().unwrap();
+    let file1 = create_test_file(temp_dir.path(), "file1.txt", b"Content 1");
+    let file2 = create_test_file(temp_dir.path(), "file2.txt", b"Content 2");
+    let file3 = create_test_file(temp_dir.path(), "file3.txt", b"Content 3");
+
+    jc_command()
+        .arg("-c")
+        .arg("tbz2")
+        .arg("-A")
+        .arg("archive")
+        .arg(&file1)
+        .arg(&file2)
+        .arg(&file3)
+        .arg("-C")
+        .arg(temp_dir.path())
+        .assert()
+        .success();
+
+    let archive_file = temp_dir.path().join("archive.tar.bz2");
+    assert!(file_exists(&archive_file), "TBZ2 archive should exist");
+
+    // Verify it's a valid bzip2 file
+    let content = read_file(&archive_file);
+    assert!(
+        content.len() >= 3 && content[0] == b'B' && content[1] == b'Z' && content[2] == b'h',
+        "TBZ2 archive should have bzip2 magic number"
+    );
+}
+
+#[test]
+fn test_txz_compress_multiple_files_with_archive_flag() {
+    let temp_dir = TempDir::new().unwrap();
+    let file1 = create_test_file(temp_dir.path(), "file1.txt", b"Content 1");
+    let file2 = create_test_file(temp_dir.path(), "file2.txt", b"Content 2");
+    let file3 = create_test_file(temp_dir.path(), "file3.txt", b"Content 3");
+
+    jc_command()
+        .arg("-c")
+        .arg("txz")
+        .arg("-A")
+        .arg("archive")
+        .arg(&file1)
+        .arg(&file2)
+        .arg(&file3)
+        .arg("-C")
+        .arg(temp_dir.path())
+        .assert()
+        .success();
+
+    let archive_file = temp_dir.path().join("archive.tar.xz");
+    assert!(file_exists(&archive_file), "TXZ archive should exist");
+
+    // Verify it's a valid xz file
+    let content = read_file(&archive_file);
+    assert!(
+        content.len() >= 6
+            && content[0] == 0xfd
+            && content[1] == 0x37
+            && content[2] == 0x7a
+            && content[3] == 0x58
+            && content[4] == 0x5a
+            && content[5] == 0x00,
+        "TXZ archive should have xz magic number"
+    );
+}
+
+#[test]
+fn test_multiple_files_archive_with_destination_directory() {
+    let temp_dir = TempDir::new().unwrap();
+    let source_dir = temp_dir.path().join("source");
+    let dest_dir = temp_dir.path().join("dest");
+    std::fs::create_dir(&source_dir).unwrap();
+    std::fs::create_dir(&dest_dir).unwrap();
+
+    let file1 = create_test_file(&source_dir, "a.txt", b"Content A");
+    let file2 = create_test_file(&source_dir, "b.txt", b"Content B");
+    let file3 = create_test_file(&source_dir, "c.txt", b"Content C");
+
+    jc_command()
+        .arg("-c")
+        .arg("txz")
+        .arg("-A")
+        .arg("myarchive")
+        .arg(&file1)
+        .arg(&file2)
+        .arg(&file3)
+        .arg("-C")
+        .arg(&dest_dir)
+        .assert()
+        .success();
+
+    let archive_file = dest_dir.join("myarchive.tar.xz");
+    assert!(
+        file_exists(&archive_file),
+        "Archive should be created in destination directory"
+    );
+}
+
+#[test]
+fn test_multiple_files_archive_can_be_extracted() {
+    let temp_dir = TempDir::new().unwrap();
+    let file1 = create_test_file(temp_dir.path(), "file1.txt", b"Content 1");
+    let file2 = create_test_file(temp_dir.path(), "file2.txt", b"Content 2");
+    let file3 = create_test_file(temp_dir.path(), "file3.txt", b"Content 3");
+
+    // Create archive
+    jc_command()
+        .arg("-c")
+        .arg("tgz")
+        .arg("-A")
+        .arg("test_archive")
+        .arg(&file1)
+        .arg(&file2)
+        .arg(&file3)
+        .arg("-C")
+        .arg(temp_dir.path())
+        .assert()
+        .success();
+
+    let archive_file = temp_dir.path().join("test_archive.tar.gz");
+    assert!(file_exists(&archive_file));
+
+    // Remove original files
+    std::fs::remove_file(&file1).unwrap();
+    std::fs::remove_file(&file2).unwrap();
+    std::fs::remove_file(&file3).unwrap();
+
+    // Extract using system tar to verify archive integrity
+    std::process::Command::new("tar")
+        .arg("-xzf")
+        .arg(&archive_file)
+        .arg("-C")
+        .arg(temp_dir.path())
+        .output()
+        .expect("Failed to extract archive");
+
+    // Verify extracted files
+    assert!(file_exists(&temp_dir.path().join("file1.txt")));
+    assert!(file_exists(&temp_dir.path().join("file2.txt")));
+    assert!(file_exists(&temp_dir.path().join("file3.txt")));
+    assert_eq!(read_file(&temp_dir.path().join("file1.txt")), b"Content 1");
+    assert_eq!(read_file(&temp_dir.path().join("file2.txt")), b"Content 2");
+    assert_eq!(read_file(&temp_dir.path().join("file3.txt")), b"Content 3");
+}
