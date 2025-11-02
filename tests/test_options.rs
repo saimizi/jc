@@ -11,7 +11,7 @@ fn test_timestamp_none() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-t")
@@ -33,7 +33,7 @@ fn test_timestamp_date() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-t")
@@ -61,7 +61,7 @@ fn test_timestamp_datetime() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-t")
@@ -88,7 +88,7 @@ fn test_timestamp_nanoseconds() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-t")
@@ -116,7 +116,7 @@ fn test_timestamp_default_is_none() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Without -t flag, default should be 0 (no timestamp)
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
@@ -143,7 +143,7 @@ fn test_move_to_directory() {
 
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -181,7 +181,7 @@ fn test_move_to_directory_multiple_files() {
         ],
     );
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -203,7 +203,7 @@ fn test_move_to_with_timestamp() {
 
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -248,7 +248,7 @@ fn test_collect_with_parent_directory() {
 
     let archive_name = temp_dir.path().join("archive.tar.gz");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-a")
@@ -274,7 +274,7 @@ fn test_collect_flat_without_parent_directory() {
 
     let archive_name = temp_dir.path().join("archive.tar.gz");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-A")
@@ -300,7 +300,7 @@ fn test_collect_preserves_originals() {
 
     let archive_name = temp_dir.path().join("archive.tar.gz");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-a")
@@ -328,7 +328,7 @@ fn test_collect_with_bzip2() {
 
     let archive_name = temp_dir.path().join("archive.tar.bz2");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg("-a")
@@ -354,7 +354,7 @@ fn test_collect_with_xz() {
 
     let archive_name = temp_dir.path().join("archive.tar.xz");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg("-a")
@@ -380,7 +380,7 @@ fn test_collect_with_compression_level() {
 
     let archive_name = temp_dir.path().join("archive.tar.gz");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-a")
@@ -412,7 +412,7 @@ fn test_collect_decompress() {
     let archive_name = temp_dir.path().join("archive.tar.gz");
 
     // Create archive
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-a")
@@ -427,7 +427,11 @@ fn test_collect_decompress() {
     }
 
     // Decompress archive
-    jc_command().arg("-d").arg(&archive_name).assert().success();
+    jcz_command()
+        .arg("-d")
+        .arg(&archive_name)
+        .assert()
+        .success();
 
     // Files should be restored
     assert!(
@@ -451,7 +455,7 @@ fn test_combined_move_to_and_timestamp() {
 
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -490,7 +494,7 @@ fn test_combined_collect_move_to_and_level() {
 
     let archive_name = output_dir.join("archive.tar.gz");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-a")

@@ -102,7 +102,7 @@ jobs:
       - name: Create source tarball
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          git archive --format=tar.gz --prefix="jc-${VERSION}/" HEAD -o "jc-${VERSION}.tar.gz"
+          git archive --format=tar.gz --prefix="jcz-${VERSION}/" HEAD -o "jcz-${VERSION}.tar.gz"
 
       - name: Install cargo-deb
         run: cargo install cargo-deb
@@ -116,11 +116,11 @@ jobs:
           cat >> Cargo.toml << 'DEBEOF'
 
           [package.metadata.deb]
-          maintainer = "JC Contributors <noreply@github.com>"
-          copyright = "2025, JC Contributors <noreply@github.com>"
+          maintainer = "JCZ Contributors <noreply@github.com>"
+          copyright = "2025, JCZ Contributors <noreply@github.com>"
           license-file = ["LICENSE", "0"]
           extended-description = """\
-          Just Compress (jc) is a unified compression utility that simplifies \
+          Just Compress Zip (jcz) is a unified compression utility that simplifies \
           working with various compression formats including gzip, bzip2, xz, \
           and tar archives. It provides a consistent interface for compression \
           and decompression operations."""
@@ -128,7 +128,7 @@ jobs:
           section = "utils"
           priority = "optional"
           assets = [
-              ["target/release/jc", "usr/bin/", "755"],
+              ["target/release/jcz", "usr/bin/", "755"],
           ]
           DEBEOF
 
@@ -146,9 +146,9 @@ jobs:
 
           if [ -n "$DEB_FILE" ]; then
             VERSION="${{ steps.version.outputs.version }}"
-            cp "$DEB_FILE" "jc_${VERSION}_amd64.deb"
-            echo "Debian package created: jc_${VERSION}_amd64.deb"
-            ls -lh "jc_${VERSION}_amd64.deb"
+            cp "$DEB_FILE" "jcz_${VERSION}_amd64.deb"
+            echo "Debian package created: jcz_${VERSION}_amd64.deb"
+            ls -lh "jcz_${VERSION}_amd64.deb"
           else
             echo "Error: Debian package not found"
             exit 1
@@ -176,8 +176,8 @@ jobs:
           name: Release-${{ steps.version.outputs.version }}
           body_path: changelog.md
           files: |
-            jc-${{ steps.version.outputs.version }}.tar.gz
-            jc_${{ steps.version.outputs.version }}_amd64.deb
+            jcz-${{ steps.version.outputs.version }}.tar.gz
+            jcz_${{ steps.version.outputs.version }}_amd64.deb
           draft: false
           prerelease: false
         env:

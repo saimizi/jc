@@ -1,5 +1,5 @@
 # Software Design Document (SDD)
-## JC - Just Compress Utility (Rust Implementation)
+## JCZ - Just Compress Zip Utility (Rust Implementation)
 
 **Version:** 1.0
 **Date:** 2025-11-01
@@ -11,7 +11,7 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-This Software Design Document describes the architecture, design, and implementation strategy for the JC (Just Compress) utility in Rust. It provides detailed technical specifications for developers implementing the system.
+This Software Design Document describes the architecture, design, and implementation strategy for the JCZ (Just Compress Zip) utility in Rust. It provides detailed technical specifications for developers implementing the system.
 
 ### 1.2 Scope
 This document covers:
@@ -24,7 +24,7 @@ This document covers:
 - Testing approach
 
 ### 1.3 References
-- JC Software Requirements Specification (jc_srs.md)
+- JCZ Software Requirements Specification (jcz_srs.md)
 - Rust Programming Language Documentation
 - The Rust Book (https://doc.rust-lang.org/book/)
 - Rust API Guidelines (https://rust-lang.github.io/api-guidelines/)
@@ -94,7 +94,7 @@ This document covers:
 ### 2.2 Module Structure
 
 ```
-jc/
+jcz/
 ├── src/
 │   ├── main.rs                 # Entry point, CLI setup
 │   ├── lib.rs                  # Library root, public API
@@ -132,8 +132,8 @@ jc/
 │   └── fixtures/               # Test data
 ├── Cargo.toml                  # Dependencies and metadata
 └── docs/
-    ├── jc_srs.md               # Requirements specification
-    └── jc_sdd.md               # This design document
+    ├── jcz_srs.md              # Requirements specification
+    └── jcz_sdd.md              # This design document
 ```
 
 ---
@@ -309,10 +309,10 @@ use std::fmt;
 use std::io;
 use std::path::PathBuf;
 
-/// Result type for JC operations
+/// Result type for JCZ operations
 pub type JcResult<T> = Result<T, JcError>;
 
-/// Comprehensive error type for JC operations
+/// Comprehensive error type for JCZ operations
 #[derive(Debug)]
 pub enum JcError {
     /// File not found
@@ -1372,7 +1372,7 @@ pub fn collect_and_compress(
     info!("Collecting {} files into {}", inputs.len(), collection_config.package_name);
 
     // Create temporary staging directory
-    let temp_dir = fsutil::create_temp_dir("jcpkg_")?;
+    let temp_dir = fsutil::create_temp_dir("jczpkg_")?;
     debug!("Created temporary directory: {}", temp_dir.display());
 
     // Ensure cleanup on exit
@@ -1502,17 +1502,17 @@ use log::{Level, LevelFilter};
 
 static LOGGER_INIT: OnceLock<()> = OnceLock::new();
 
-/// Initialize the logging system based on JCDBG environment variable
+/// Initialize the logging system based on JCZDBG environment variable
 pub fn init_logger() {
     LOGGER_INIT.get_or_init(|| {
         let env = Env::default()
-            .filter_or("JCDBG", "info")
-            .write_style("JCDBG_STYLE");
+            .filter_or("JCZDBG", "info")
+            .write_style("JCZDBG_STYLE");
 
         let mut builder = Builder::from_env(env);
 
-        // Map JCDBG values to log levels
-        let level = std::env::var("JCDBG")
+        // Map JCZDBG values to log levels
+        let level = std::env::var("JCZDBG")
             .ok()
             .and_then(|val| match val.to_lowercase().as_str() {
                 "error" => Some(LevelFilter::Error),
@@ -1537,7 +1537,7 @@ pub use log::{debug, error, info, warn};
 
 **Design Rationale**:
 - **env_logger crate**: Standard Rust logging
-- **JCDBG variable**: Match original behavior
+- **JCZDBG variable**: Match original behavior
 - **OnceLock**: Thread-safe initialization
 - **Re-export macros**: Convenient imports
 
@@ -1854,7 +1854,7 @@ pub fn validate_move_to(path: &Path) -> JcResult<()> {
 
     // Check if writable by attempting to create a test file
     // (More robust than checking permissions)
-    let test_file = path.join(".jc_write_test");
+    let test_file = path.join(".jcz_write_test");
     match fs::File::create(&test_file) {
         Ok(_) => {
             let _ = fs::remove_file(&test_file);
@@ -1878,10 +1878,10 @@ use clap::{Parser, ValueEnum};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(name = "jc")]
-#[command(author = "JC Contributors")]
+#[command(name = "jcz")]
+#[command(author = "JCZ Contributors")]
 #[command(version)]
-#[command(about = "Just Compress - A unified compression utility", long_about = None)]
+#[command(about = "Just Compress Zip - A unified compression utility", long_about = None)]
 pub struct CliArgs {
     /// Decompress mode
     #[arg(short = 'd', long)]
@@ -2134,13 +2134,13 @@ fn main() {
 
 ```toml
 [package]
-name = "jc"
+name = "jcz"
 version = "0.1.0"
 edition = "2021"
-authors = ["JC Contributors"]
-description = "Just Compress - A unified compression utility"
+authors = ["JCZ Contributors"]
+description = "Just Compress Zip - A unified compression utility"
 license = "MIT"
-repository = "https://github.com/saimizi/jc"
+repository = "https://github.com/saimizi/jcz"
 
 [dependencies]
 # Command-line argument parsing
@@ -2163,7 +2163,7 @@ assert_cmd = "2.0"
 predicates = "3.0"
 
 [[bin]]
-name = "jc"
+name = "jcz"
 path = "src/main.rs"
 
 [profile.release]
@@ -2224,7 +2224,7 @@ fn test_compress_gzip() {
     let input_file = temp.path().join("test.txt");
     fs::write(&input_file, b"Hello, world!").unwrap();
 
-    let mut cmd = Command::cargo_bin("jc").unwrap();
+    let mut cmd = Command::cargo_bin("jcz").unwrap();
     cmd.arg("-c").arg("gzip")
        .arg(&input_file)
        .current_dir(temp.path());
@@ -2259,8 +2259,8 @@ fn test_decompress_gzip() {
 
     let compressed = temp.path().join("test.txt.gz");
 
-    // Decompress with jc
-    let mut cmd = Command::cargo_bin("jc").unwrap();
+    // Decompress with jcz
+    let mut cmd = Command::cargo_bin("jcz").unwrap();
     cmd.arg("-d")
        .arg(&compressed)
        .current_dir(temp.path());
@@ -2292,7 +2292,7 @@ fn test_decompress_gzip() {
 cargo build
 
 # Run with debug logging
-JCDBG=debug cargo run -- -c gzip test.txt
+JCZDBG=debug cargo run -- -c gzip test.txt
 
 # Run tests
 cargo test

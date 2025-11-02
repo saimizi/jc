@@ -8,7 +8,7 @@ fn test_xz_compress_single_file() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg(&test_file)
@@ -34,7 +34,7 @@ fn test_xz_compress_multiple_files() {
         ],
     );
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .args(&files)
@@ -52,7 +52,7 @@ fn test_xz_compress_with_level_1() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg("-l")
@@ -70,7 +70,7 @@ fn test_xz_compress_with_level_9() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg("-l")
@@ -88,7 +88,7 @@ fn test_xz_compress_with_default_level() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg(&test_file)
@@ -105,7 +105,7 @@ fn test_xz_decompress_single_file() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // First compress
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg(&test_file)
@@ -119,7 +119,7 @@ fn test_xz_decompress_single_file() {
     std::fs::remove_file(&test_file).unwrap();
 
     // Now decompress
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .assert()
@@ -145,7 +145,7 @@ fn test_xz_decompress_multiple_files() {
     );
 
     // Compress both files
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .args(&files)
@@ -160,7 +160,7 @@ fn test_xz_decompress_multiple_files() {
     std::fs::remove_file(&files[1]).unwrap();
 
     // Decompress both
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&xz1)
         .arg(&xz2)
@@ -178,7 +178,7 @@ fn test_xz_compress_binary_data() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "binary.dat", TEST_DATA_BINARY);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg(&test_file)
@@ -190,7 +190,7 @@ fn test_xz_compress_binary_data() {
 
     // Verify decompression works
     std::fs::remove_file(&test_file).unwrap();
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .assert()
@@ -211,7 +211,7 @@ fn test_xz_verify_compression_reduces_size() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", compressible_content.as_bytes());
     let original_size = file_size(&test_file);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg(&test_file)
@@ -233,7 +233,7 @@ fn test_xz_compress_preserves_original() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
     let original_content = read_file(&test_file);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg(&test_file)

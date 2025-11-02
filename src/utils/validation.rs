@@ -106,7 +106,7 @@ pub fn validate_move_to(path: &Path) -> JcResult<()> {
     }
 
     // Check if writable by attempting to create a test file
-    let test_file = path.join(".jc_write_test");
+    let test_file = path.join(".jcz_write_test");
     match fs::File::create(&test_file) {
         Ok(_) => {
             let _ = fs::remove_file(&test_file);

@@ -19,10 +19,10 @@ pub fn create_test_files(dir: &Path, files: &[(&str, &[u8])]) -> Vec<PathBuf> {
         .collect()
 }
 
-/// Helper to create a jc command
-pub fn jc_command() -> Command {
+/// Helper to create a jcz command
+pub fn jcz_command() -> Command {
     #[allow(deprecated)]
-    Command::cargo_bin("jc").expect("Failed to find jc binary")
+    Command::cargo_bin("jcz").expect("Failed to find jcz binary")
 }
 
 /// Helper to verify a file exists

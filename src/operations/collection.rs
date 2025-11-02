@@ -53,7 +53,7 @@ pub fn collect_and_compress(
     );
 
     // Create temporary staging directory
-    let temp_dir = create_temp_dir("jcpkg_")?;
+    let temp_dir = create_temp_dir("jczpkg_")?;
     debug!("Created temporary directory: {}", temp_dir.display());
 
     // Ensure cleanup on exit

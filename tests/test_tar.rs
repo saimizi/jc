@@ -9,7 +9,7 @@ fn test_tar_archive_single_file() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tar")
         .arg(&test_file)
@@ -32,7 +32,7 @@ fn test_tar_archive_multiple_files() {
         ],
     );
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tar")
         .args(&files)
@@ -52,7 +52,7 @@ fn test_tar_extract_single_file() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Create archive
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tar")
         .arg(&test_file)
@@ -66,7 +66,11 @@ fn test_tar_extract_single_file() {
     std::fs::remove_file(&test_file).unwrap();
 
     // Extract
-    jc_command().arg("-d").arg(&archive_file).assert().success();
+    jcz_command()
+        .arg("-d")
+        .arg(&archive_file)
+        .assert()
+        .success();
 
     let extracted_file = temp_dir.path().join("test.txt");
     assert!(file_exists(&extracted_file), "Extracted file should exist");
@@ -85,7 +89,7 @@ fn test_tar_extract_multiple_files() {
     );
 
     // Create archives
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tar")
         .args(&files)
@@ -100,7 +104,7 @@ fn test_tar_extract_multiple_files() {
     std::fs::remove_file(&files[1]).unwrap();
 
     // Extract both
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&tar1)
         .arg(&tar2)
@@ -119,7 +123,7 @@ fn test_tar_archive_preserves_original() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
     let original_content = read_file(&test_file);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tar")
         .arg(&test_file)
@@ -139,7 +143,7 @@ fn test_tar_archive_binary_data() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "binary.dat", TEST_DATA_BINARY);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tar")
         .arg(&test_file)
@@ -151,7 +155,11 @@ fn test_tar_archive_binary_data() {
 
     // Verify extraction works
     std::fs::remove_file(&test_file).unwrap();
-    jc_command().arg("-d").arg(&archive_file).assert().success();
+    jcz_command()
+        .arg("-d")
+        .arg(&archive_file)
+        .assert()
+        .success();
 
     assert_eq!(
         read_file(&temp_dir.path().join("binary.dat")),
@@ -165,7 +173,7 @@ fn test_tar_verify_archive_contains_file() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
     let file_name = test_file.file_name().unwrap().to_str().unwrap();
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tar")
         .arg(&test_file)
@@ -195,7 +203,7 @@ fn test_tar_with_compression_level_ignored() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // TAR doesn't use compression level, but command should not fail
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tar")
         .arg("-l")

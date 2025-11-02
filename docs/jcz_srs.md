@@ -1,5 +1,5 @@
 # Software Requirements Specification (SRS)
-## JC - Just Compress Utility
+## JCZ - Just Compress Zip Utility
 
 **Version:** 1.0
 **Date:** 2025-11-01
@@ -10,10 +10,10 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-This document specifies the functional and non-functional requirements for JC (Just Compress), a command-line compression utility that provides a unified interface for multiple compression formats.
+This document specifies the functional and non-functional requirements for JCZ (Just Compress Zip), a command-line compression utility that provides a unified interface for multiple compression formats.
 
 ### 1.2 Scope
-JC is a command-line tool that simplifies file and directory compression/decompression operations. It supports multiple compression algorithms (GZIP, BZIP2, XZ) and archive formats (TAR), including compound formats (TAR+GZIP, TAR+BZIP2, TAR+XZ).
+JCZ is a command-line tool that simplifies file and directory compression/decompression operations. It supports multiple compression algorithms (GZIP, BZIP2, XZ) and archive formats (TAR), including compound formats (TAR+GZIP, TAR+BZIP2, TAR+XZ).
 
 ### 1.3 Intended Audience
 - Software developers implementing the tool
@@ -22,7 +22,7 @@ JC is a command-line tool that simplifies file and directory compression/decompr
 - System administrators
 
 ### 1.4 Definitions and Acronyms
-- **JC**: Just Compress
+- **JCZ**: Just Compress Zip
 - **CLI**: Command-Line Interface
 - **GZIP**: GNU Zip compression algorithm
 - **BZIP2**: Burrows-Wheeler compression algorithm
@@ -37,7 +37,7 @@ JC is a command-line tool that simplifies file and directory compression/decompr
 ## 2. Overall Description
 
 ### 2.1 Product Perspective
-JC is a standalone command-line utility that wraps system compression tools (gzip, bzip2, xz, tar) to provide a consistent, simplified interface. It acts as a compression abstraction layer, allowing users to compress/decompress files without memorizing different command syntaxes for each compression tool.
+JCZ is a standalone command-line utility that wraps system compression tools (gzip, bzip2, xz, tar) to provide a consistent, simplified interface. It acts as a compression abstraction layer, allowing users to compress/decompress files without memorizing different command syntaxes for each compression tool.
 
 ### 2.2 Product Features
 1. **Multi-Format Compression**: Support for GZIP, BZIP2, XZ, TAR, TGZ, TBZ2, TXZ
@@ -353,9 +353,9 @@ JC is a standalone command-line utility that wraps system compression tools (gzi
 - All extracted files in correct locations
 
 **Examples**:
-- `jc -d multi.tar.gz -C output/` → files in `output/file1.txt`, `output/file2.txt`
-- `jc -d multi.tar.gz` → files in `multi/file1.txt`, `multi/file2.txt`
-- `jc -d single.tar.gz -C output/` → file in `output/single.txt`
+- `jcz -d multi.tar.gz -C output/` → files in `output/file1.txt`, `output/file2.txt`
+- `jcz -d multi.tar.gz` → files in `multi/file1.txt`, `multi/file2.txt`
+- `jcz -d single.tar.gz -C output/` → file in `output/single.txt`
 
 **Error Conditions**:
 - Corrupted TAR archive
@@ -469,16 +469,16 @@ JC is a standalone command-line utility that wraps system compression tools (gzi
 1. **ERROR**: Critical errors (always enabled)
 2. **WARN**: Warnings (enabled by default)
 3. **INFO**: Informational messages (enabled by default)
-4. **DEBUG**: Debug messages (enabled only when `JCDBG=debug`)
+4. **DEBUG**: Debug messages (enabled only when `JCZDBG=debug`)
 
 **Requirements**:
 - ERROR logs shall include file location (short filename)
 - DEBUG logs shall include file location (short filename)
 - Log output shall go to STDERR
 - Disabled log levels shall output to /dev/null
-- Environment variable `JCDBG` shall control logging verbosity
+- Environment variable `JCZDBG` shall control logging verbosity
 
-**JCDBG Environment Variable Values**:
+**JCZDBG Environment Variable Values**:
 - `error`: Only error logs
 - `warn`: Error and warning logs
 - `info`: Error, warning, and info logs (default behavior)
@@ -508,7 +508,7 @@ JC is a standalone command-line utility that wraps system compression tools (gzi
 
 **Command Syntax**:
 ```
-jc [Options] <File|Dir> [File|Dir]...
+jcz [Options] <File|Dir> [File|Dir]...
 ```
 
 **Options**:
@@ -568,7 +568,7 @@ jc [Options] <File|Dir> [File|Dir]...
 
 **Requirements**:
 - Temporary directories shall be created in current directory
-- Temporary directory naming: `jcpkg_<random>`
+- Temporary directory naming: `jczpkg_<random>`
 - Temporary files shall be cleaned up on completion
 - File permissions shall be preserved (0755 for created files)
 
@@ -1017,7 +1017,7 @@ Combine multiple files/directories into a single compressed archive.
    - Verify no duplicate basenames
 
 2. **Staging**:
-   - Create temporary directory: `jcpkg_<random>` in current directory
+   - Create temporary directory: `jczpkg_<random>` in current directory
    - Create subdirectory: `<tmpdir>/<pkgname>`
    - Copy all input files to staging directory: `cp -r <file> <staging>/`
 
@@ -1099,7 +1099,7 @@ Process multiple files concurrently with parallelism.
 - gzip tool is installed
 
 **Main Flow**:
-1. User executes: `jc -c gzip myfile.txt`
+1. User executes: `jcz -c gzip myfile.txt`
 2. System validates input file
 3. System creates compressor configuration
 4. System compresses file to `myfile.txt.gz`
@@ -1120,7 +1120,7 @@ Process multiple files concurrently with parallelism.
 - tar and gzip tools installed
 
 **Main Flow**:
-1. User executes: `jc -c tgz -a myarchive file1.txt file2.txt dir1/`
+1. User executes: `jcz -c tgz -a myarchive file1.txt file2.txt dir1/`
 2. System validates input files
 3. System checks for duplicate basenames
 4. System creates temporary directory
@@ -1145,7 +1145,7 @@ Process multiple files concurrently with parallelism.
 - gzip and tar tools installed
 
 **Main Flow**:
-1. User executes: `jc -d archive.tar.gz`
+1. User executes: `jcz -d archive.tar.gz`
 2. System detects .gz extension
 3. System decompresses GZIP layer to `archive.tar`
 4. System detects .tar extension
@@ -1168,7 +1168,7 @@ Process multiple files concurrently with parallelism.
 - bzip2 tool installed
 
 **Main Flow**:
-1. User executes: `jc -c bzip2 -t 2 -C /backups/ important.doc`
+1. User executes: `jcz -c bzip2 -t 2 -C /backups/ important.doc`
 2. System validates input file
 3. System validates destination directory
 4. System generates timestamp (e.g., 20251101_143522)
@@ -1189,7 +1189,7 @@ Process multiple files concurrently with parallelism.
 - xz tool installed
 
 **Main Flow**:
-1. User executes: `jc -c xz -l 9 file1.txt file2.txt file3.txt`
+1. User executes: `jcz -c xz -l 9 file1.txt file2.txt file3.txt`
 2. System validates input files
 3. System creates XZ compressor with level 9
 4. System spawns 3 concurrent compression operations
@@ -1333,53 +1333,53 @@ Process multiple files concurrently with parallelism.
 
 | Variable | Values | Default | Purpose |
 |----------|--------|---------|---------|
-| JCDBG | error, warn, info, debug | info | Control logging verbosity |
+| JCZDBG | error, warn, info, debug | info | Control logging verbosity |
 
 ### Appendix E: Temporary File Naming
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Staging directory | `jcpkg_<random>` | `jcpkg_a8f3d2b1` |
+| Staging directory | `jczpkg_<random>` | `jczpkg_a8f3d2b1` |
 | Intermediate TAR | `<original>.tar` | `myfile.txt.tar` |
 
 ### Appendix F: Command Examples
 
 ```bash
 # Basic compression
-jc -c gzip myfile.txt
+jcz -c gzip myfile.txt
 
 # Compression with level
-jc -c bzip2 -l 9 large.iso
+jcz -c bzip2 -l 9 large.iso
 
 # Create compressed archive
-jc -c tgz -a backup file1 file2 dir/
+jcz -c tgz -a backup file1 file2 dir/
 
 # Create flat archive (no parent directory)
-jc -c txz -A backup file1 file2 dir/
+jcz -c txz -A backup file1 file2 dir/
 
 # Compress with timestamp
-jc -c xz -t 2 document.pdf
+jcz -c xz -t 2 document.pdf
 
 # Compress and move to directory
-jc -c gzip -C /backups/ important.doc
+jcz -c gzip -C /backups/ important.doc
 
 # Compress with all options
-jc -c bzip2 -l 9 -t 2 -C /archives/ file.bin
+jcz -c bzip2 -l 9 -t 2 -C /archives/ file.bin
 
 # Decompress single file
-jc -d archive.tar.gz
+jcz -d archive.tar.gz
 
 # Decompress and move
-jc -d -C /extracted/ archive.tar.xz
+jcz -d -C /extracted/ archive.tar.xz
 
 # Batch compress
-jc -c gzip *.txt
+jcz -c gzip *.txt
 
 # Batch decompress
-jc -d *.gz
+jcz -d *.gz
 
 # Enable debug logging
-JCDBG=debug jc -c gzip myfile.txt
+JCZDBG=debug jcz -c gzip myfile.txt
 ```
 
 ---

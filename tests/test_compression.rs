@@ -15,7 +15,7 @@ fn test_compress_with_auto_create_directory() {
     assert!(!dest_dir.exists());
 
     // Compress with -C to non-existent directory (should auto-create)
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -49,7 +49,7 @@ fn test_compress_with_nested_directory_creation() {
     assert!(!dest_dir.exists());
 
     // Compress to nested path
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("bzip2")
         .arg("-C")
@@ -75,7 +75,7 @@ fn test_cross_device_compress_with_c_flag() {
     fs::create_dir(&dest_dir).unwrap();
 
     // Compress with -C to different location
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -104,7 +104,7 @@ fn test_compress_multiple_files_with_c_flag() {
     let dest_dir = temp_dir.path().join("compressed");
 
     // Compress multiple files to destination
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg("-C")
@@ -134,7 +134,7 @@ fn test_compress_compound_format_with_c_flag() {
     let dest_dir = temp_dir.path().join("archives");
 
     // Test tar.gz
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-C")
@@ -147,7 +147,7 @@ fn test_compress_compound_format_with_c_flag() {
     assert!(file_exists(&dest_dir.join("test.txt.tar.gz")));
 
     // Test tar.bz2
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg("-C")
@@ -159,7 +159,7 @@ fn test_compress_compound_format_with_c_flag() {
     assert!(file_exists(&dest_dir.join("test.txt.tar.bz2")));
 
     // Test tar.xz
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg("-C")
@@ -182,7 +182,7 @@ fn test_compress_to_existing_directory() {
     fs::create_dir(&dest_dir).unwrap();
 
     // Compress to existing directory
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -203,7 +203,7 @@ fn test_compress_with_c_flag_and_levels() {
     let dest_dir = temp_dir.path().join("compressed");
 
     // Test with level 1
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-l")
@@ -222,7 +222,7 @@ fn test_compress_with_c_flag_and_levels() {
     fs::remove_file(&compressed_file).unwrap();
 
     // Test with level 9
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-l")
@@ -245,7 +245,7 @@ fn test_compress_with_c_flag_preserves_original() {
 
     let dest_dir = temp_dir.path().join("output");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -275,7 +275,7 @@ fn test_compress_with_c_flag_and_timestamp() {
     let dest_dir = temp_dir.path().join("timestamped");
 
     // Compress with timestamp option
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-t")
@@ -310,7 +310,7 @@ fn test_concurrent_compress_with_different_destinations() {
     let dest2 = temp_dir.path().join("dest2");
 
     // Compress first file to dest1
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -320,7 +320,7 @@ fn test_concurrent_compress_with_different_destinations() {
         .success();
 
     // Compress second file to dest2
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("bzip2")
         .arg("-C")
@@ -342,7 +342,7 @@ fn test_compress_binary_data_with_c_flag() {
 
     let dest_dir = temp_dir.path().join("binary_output");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg("-C")

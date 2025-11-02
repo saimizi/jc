@@ -1,6 +1,6 @@
 # Integration Tests
 
-This directory contains integration tests for the `jc` (Just Compress) command-line tool.
+This directory contains integration tests for the `jcz` (Just Compress Zip) command-line tool.
 
 ## Prerequisites
 

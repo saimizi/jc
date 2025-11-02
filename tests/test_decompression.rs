@@ -11,7 +11,7 @@ fn test_decompress_with_auto_create_directory() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // First compress the file
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
@@ -29,7 +29,7 @@ fn test_decompress_with_auto_create_directory() {
     assert!(!dest_dir.exists(), "Destination should not exist initially");
 
     // Decompress to non-existent directory (should auto-create)
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .arg("-C")
@@ -60,7 +60,7 @@ fn test_decompress_with_nested_directory_creation() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Compress the file
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
@@ -75,7 +75,7 @@ fn test_decompress_with_nested_directory_creation() {
     assert!(!dest_dir.exists());
 
     // Decompress to nested path
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .arg("-C")
@@ -95,7 +95,7 @@ fn test_decompress_with_force_flag() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Compress the file
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
@@ -105,7 +105,7 @@ fn test_decompress_with_force_flag() {
     let compressed_file = temp_dir.path().join("test.txt.gz");
 
     // Decompress first time
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .arg("-f")
@@ -118,7 +118,7 @@ fn test_decompress_with_force_flag() {
     assert_eq!(read_file(&decompressed_file), b"Modified content");
 
     // Decompress again with --force (should overwrite without prompt)
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .arg("-f")
@@ -136,7 +136,7 @@ fn test_decompress_compound_format_single_file() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
     // Compress to .tar.gz
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg(&test_file)
@@ -149,7 +149,7 @@ fn test_decompress_compound_format_single_file() {
     // Remove original and decompress
     fs::remove_file(&test_file).unwrap();
 
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .arg("-f")
@@ -169,7 +169,7 @@ fn test_decompress_to_different_directory_with_c_flag() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Compress the file
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg(&test_file)
@@ -187,7 +187,7 @@ fn test_decompress_to_different_directory_with_c_flag() {
     fs::remove_file(&test_file).unwrap();
 
     // Decompress to different directory with -C flag
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .arg("-C")
@@ -211,7 +211,7 @@ fn test_concurrent_decompress_no_conflicts() {
     let file2 = create_test_file(temp_dir.path(), "test2.txt", TEST_DATA_MEDIUM);
     let file3 = create_test_file(temp_dir.path(), "test3.txt", TEST_DATA_BINARY);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .args(&[&file1, &file2, &file3])
@@ -228,7 +228,7 @@ fn test_concurrent_decompress_no_conflicts() {
     fs::remove_file(&file3).unwrap();
 
     // Decompress all files concurrently (should not conflict due to temp directory isolation)
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed1)
         .arg(&compressed2)
@@ -262,7 +262,7 @@ fn test_decompress_tar_bz2() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
     // Compress to .tar.bz2
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg(&test_file)
@@ -275,7 +275,7 @@ fn test_decompress_tar_bz2() {
     fs::remove_file(&test_file).unwrap();
 
     // Decompress
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .arg("-f")
@@ -294,7 +294,7 @@ fn test_decompress_tar_xz() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
     // Compress to .tar.xz
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg(&test_file)
@@ -307,7 +307,7 @@ fn test_decompress_tar_xz() {
     fs::remove_file(&test_file).unwrap();
 
     // Decompress
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .arg("-f")
@@ -326,21 +326,21 @@ fn test_decompress_mixed_formats() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
     // Compress with different formats
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
         .assert()
         .success();
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("bzip2")
         .arg(&test_file)
         .assert()
         .success();
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("xz")
         .arg(&test_file)
@@ -355,7 +355,7 @@ fn test_decompress_mixed_formats() {
     fs::remove_file(&test_file).unwrap();
 
     // Decompress gz first
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&gz_file)
         .arg("-f")
@@ -366,7 +366,7 @@ fn test_decompress_mixed_formats() {
     assert_eq!(read_file(&test_file), TEST_DATA_MEDIUM);
 
     // Decompress bz2 (should overwrite with force flag)
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&bz2_file)
         .arg("-f")
@@ -376,7 +376,7 @@ fn test_decompress_mixed_formats() {
     assert_eq!(read_file(&test_file), TEST_DATA_MEDIUM);
 
     // Decompress xz (should overwrite with force flag)
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&xz_file)
         .arg("-f")
@@ -393,7 +393,7 @@ fn test_cross_device_move_with_c_flag() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Compress the file
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
@@ -407,7 +407,7 @@ fn test_cross_device_move_with_c_flag() {
     let dest_dir = dest_temp_dir.path().join("output");
 
     // Decompress with -C to different location
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .arg("-C")
@@ -430,7 +430,7 @@ fn test_decompress_preserves_binary_content() {
 
     // Compress with each algorithm
     for format in &["gzip", "bzip2", "xz"] {
-        jc_command()
+        jcz_command()
             .arg("-c")
             .arg(format)
             .arg(&test_file)
@@ -450,7 +450,7 @@ fn test_decompress_preserves_binary_content() {
         // Decompress
         fs::remove_file(&test_file).unwrap();
 
-        jc_command()
+        jcz_command()
             .arg("-d")
             .arg(&compressed_file)
             .arg("-f")

@@ -10,7 +10,7 @@ fn test_invalid_compression_command() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("invalid")
         .arg(&test_file)
@@ -23,7 +23,7 @@ fn test_invalid_compression_level_zero() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-l")
@@ -38,7 +38,7 @@ fn test_invalid_compression_level_too_high() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-l")
@@ -53,7 +53,7 @@ fn test_invalid_timestamp_option_negative() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-t")
@@ -68,7 +68,7 @@ fn test_invalid_timestamp_option_too_high() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-t")
@@ -85,7 +85,7 @@ fn test_nonexistent_file() {
     let temp_dir = TempDir::new().unwrap();
     let nonexistent = temp_dir.path().join("does_not_exist.txt");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&nonexistent)
@@ -98,7 +98,7 @@ fn test_decompress_nonexistent_file() {
     let temp_dir = TempDir::new().unwrap();
     let nonexistent = temp_dir.path().join("does_not_exist.gz");
 
-    jc_command().arg("-d").arg(&nonexistent).assert().failure();
+    jcz_command().arg("-d").arg(&nonexistent).assert().failure();
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn test_multiple_files_with_one_missing() {
     let test_file = create_test_file(temp_dir.path(), "exists.txt", TEST_DATA_SMALL);
     let nonexistent = temp_dir.path().join("does_not_exist.txt");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
@@ -120,12 +120,12 @@ fn test_multiple_files_with_one_missing() {
 
 #[test]
 fn test_no_input_files() {
-    jc_command().arg("-c").arg("gzip").assert().failure();
+    jcz_command().arg("-c").arg("gzip").assert().failure();
 }
 
 #[test]
 fn test_decompress_no_input_files() {
-    jc_command().arg("-d").assert().failure();
+    jcz_command().arg("-d").assert().failure();
 }
 
 // Invalid Directory Tests
@@ -137,7 +137,7 @@ fn test_move_to_nonexistent_directory_auto_creates() {
     let nonexistent_dir = temp_dir.path().join("does_not_exist");
 
     // Should auto-create the directory and succeed
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -157,7 +157,7 @@ fn test_move_to_file_instead_of_directory() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
     let not_a_dir = create_test_file(temp_dir.path(), "not_a_dir.txt", b"content");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg("-C")
@@ -175,7 +175,7 @@ fn test_collect_without_archive_name() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Using -a flag requires an argument
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-a")
@@ -191,7 +191,7 @@ fn test_decompress_invalid_gzip_file() {
     let temp_dir = TempDir::new().unwrap();
     let fake_gz = create_test_file(temp_dir.path(), "fake.gz", b"not a gzip file");
 
-    jc_command().arg("-d").arg(&fake_gz).assert().failure();
+    jcz_command().arg("-d").arg(&fake_gz).assert().failure();
 }
 
 #[test]
@@ -200,7 +200,7 @@ fn test_decompress_corrupted_file() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // First create a valid compressed file
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
@@ -218,7 +218,7 @@ fn test_decompress_corrupted_file() {
     std::fs::remove_file(&test_file).unwrap();
 
     // Try to decompress corrupted file
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .assert()
@@ -235,7 +235,7 @@ fn test_compress_directory_without_collection() {
     create_test_file(&test_dir, "file.txt", TEST_DATA_SMALL);
 
     // Trying to compress a directory without collection should fail or handle appropriately
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_dir)
@@ -250,7 +250,7 @@ fn test_empty_file() {
     let temp_dir = TempDir::new().unwrap();
     let empty_file = create_test_file(temp_dir.path(), "empty.txt", b"");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&empty_file)
@@ -273,7 +273,7 @@ fn test_file_with_special_characters_in_name() {
         TEST_DATA_SMALL,
     );
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&special_file)
@@ -292,7 +292,7 @@ fn test_file_with_multiple_dots() {
     let temp_dir = TempDir::new().unwrap();
     let dotted_file = create_test_file(temp_dir.path(), "file.tar.backup.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&dotted_file)
@@ -312,7 +312,7 @@ fn test_already_compressed_file() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Compress once
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
@@ -322,7 +322,7 @@ fn test_already_compressed_file() {
     let compressed_file = temp_dir.path().join("test.txt.gz");
 
     // Try to compress the .gz file (should work, creating .gz.gz)
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&compressed_file)
@@ -344,7 +344,7 @@ fn test_decompress_file_with_wrong_extension() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Compress with gzip
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("gzip")
         .arg(&test_file)
@@ -357,6 +357,6 @@ fn test_decompress_file_with_wrong_extension() {
     let wrong_ext = temp_dir.path().join("test.txt.bz2");
     std::fs::rename(&compressed_file, &wrong_ext).unwrap();
 
-    // Try to decompress - jc decompresses based on extension, so this should fail
-    jc_command().arg("-d").arg(&wrong_ext).assert().failure();
+    // Try to decompress - jcz decompresses based on extension, so this should fail
+    jcz_command().arg("-d").arg(&wrong_ext).assert().failure();
 }
