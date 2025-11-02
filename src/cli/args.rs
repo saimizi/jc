@@ -2,10 +2,10 @@ use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(name = "jc")]
-#[command(author = "JC Contributors")]
+#[command(name = "jcz")]
+#[command(author = "JCZ Contributors")]
 #[command(version)]
-#[command(about = "Just Compress - A unified compression utility", long_about = None)]
+#[command(about = "Just Compress Zip - A unified compression utility", long_about = None)]
 pub struct CliArgs {
     /// Decompress mode
     #[arg(short = 'd', long)]

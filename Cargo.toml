@@ -1,9 +1,9 @@
 [package]
-name = "jc"
+name = "jcz"
 version = "0.1.3"
 edition = "2021"
-authors = ["JC Contributors"]
-description = "Just Compress - A unified compression utility"
+authors = ["JCZ Contributors"]
+description = "Just Compress Zip - A unified compression utility"
 license = "MIT"
 repository = "https://github.com/saimizi/jc"
 
@@ -29,7 +29,7 @@ assert_cmd = "2.0"
 predicates = "3.0"
 
 [[bin]]
-name = "jc"
+name = "jcz"
 path = "src/main.rs"
 
 [profile.release]

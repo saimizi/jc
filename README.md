@@ -1,4 +1,4 @@
-# JC - Just Compress (Rust Implementation)
+# JCZ - Just Compress Zip (Rust Implementation)
 
 A unified command-line compression utility written in Rust, providing a consistent interface for multiple compression formats.
 
@@ -18,7 +18,7 @@ A unified command-line compression utility written in Rust, providing a consiste
 
 ```bash
 cargo build --release
-sudo cp target/release/jc /usr/local/bin/
+sudo cp target/release/jcz /usr/local/bin/
 ```
 
 ## Usage
@@ -27,53 +27,53 @@ sudo cp target/release/jc /usr/local/bin/
 
 ```bash
 # Compress with GZIP
-jc -c gzip file.txt
+jcz -c gzip file.txt
 
 # Compress with BZIP2 at level 9
-jc -c bzip2 -l 9 file.txt
+jcz -c bzip2 -l 9 file.txt
 
 # Create TAR archive
-jc -c tar directory/
+jcz -c tar directory/
 ```
 
 ### Compound Formats
 
 ```bash
 # Create .tar.gz
-jc -c tgz directory/
+jcz -c tgz directory/
 
 # Create .tar.bz2
-jc -c tbz2 file1.txt file2.txt
+jcz -c tbz2 file1.txt file2.txt
 
 # Create .tar.xz
-jc -c txz myfiles/
+jcz -c txz myfiles/
 ```
 
 ### Decompression
 
 ```bash
 # Decompress any supported format
-jc -d archive.tar.gz
+jcz -d archive.tar.gz
 
 # Decompress multiple files
-jc -d file1.gz file2.bz2 file3.xz
+jcz -d file1.gz file2.bz2 file3.xz
 ```
 
 ### Advanced Features
 
 ```bash
 # Add timestamp to output filename
-jc -c gzip -t 2 file.txt
+jcz -c gzip -t 2 file.txt
 # Output: file.txt_20251101_121019.gz
 
 # Move compressed files to directory
-jc -c gzip -C /backups/ *.txt
+jcz -c gzip -C /backups/ *.txt
 
 # Collect files into archive with parent directory
-jc -c tgz -a myarchive file1.txt file2.txt dir/
+jcz -c tgz -a myarchive file1.txt file2.txt dir/
 
 # Collect files without parent directory wrapper
-jc -c tgz -A myarchive file1.txt file2.txt
+jcz -c tgz -A myarchive file1.txt file2.txt
 ```
 
 ### Options
@@ -109,7 +109,7 @@ jc -c tgz -A myarchive file1.txt file2.txt
   - `debug` - Show all log messages including debug
 
 ```bash
-JCDBG=debug jc -c gzip file.txt
+JCDBG=debug jcz -c gzip file.txt
 ```
 
 ## Architecture
@@ -144,13 +144,10 @@ The implementation follows a modular design:
 
 ## Documentation
 
-- [Software Requirements Specification](docs/jc_srs.md)
-- [Software Design Document](docs/jc_sdd.md)
+- [Software Requirements Specification](docs/jcz_srs.md)
+- [Software Design Document](docs/jcz_sdd.md)
 
 ## License
 
 MIT
 
-## Original Implementation
-
-This is a Rust reimplementation of the original Go version available at https://github.com/saimizi/jc

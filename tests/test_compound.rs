@@ -10,7 +10,7 @@ fn test_tgz_compress_single_file() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg(&test_file)
@@ -27,7 +27,7 @@ fn test_tgz_compress_with_level_1() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-l")
@@ -45,7 +45,7 @@ fn test_tgz_compress_with_level_9() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-l")
@@ -64,7 +64,7 @@ fn test_tgz_decompress_single_file() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Compress
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg(&test_file)
@@ -77,7 +77,7 @@ fn test_tgz_decompress_single_file() {
     std::fs::remove_file(&test_file).unwrap();
 
     // Decompress
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .assert()
@@ -94,7 +94,7 @@ fn test_tgz_default_command() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // tgz is the default, so omitting -c should use tgz
-    jc_command().arg(&test_file).assert().success();
+    jcz_command().arg(&test_file).assert().success();
 
     let compressed_file = temp_dir.path().join("test.txt.tar.gz");
     assert!(
@@ -110,7 +110,7 @@ fn test_tbz2_compress_single_file() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg(&test_file)
@@ -127,7 +127,7 @@ fn test_tbz2_compress_with_level_1() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg("-l")
@@ -145,7 +145,7 @@ fn test_tbz2_compress_with_level_9() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg("-l")
@@ -164,7 +164,7 @@ fn test_tbz2_decompress_single_file() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Compress
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg(&test_file)
@@ -177,7 +177,7 @@ fn test_tbz2_decompress_single_file() {
     std::fs::remove_file(&test_file).unwrap();
 
     // Decompress
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .assert()
@@ -195,7 +195,7 @@ fn test_txz_compress_single_file() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg(&test_file)
@@ -212,7 +212,7 @@ fn test_txz_compress_with_level_1() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg("-l")
@@ -230,7 +230,7 @@ fn test_txz_compress_with_level_9() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_MEDIUM);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg("-l")
@@ -249,7 +249,7 @@ fn test_txz_decompress_single_file() {
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
     // Compress
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg(&test_file)
@@ -262,7 +262,7 @@ fn test_txz_decompress_single_file() {
     std::fs::remove_file(&test_file).unwrap();
 
     // Decompress
-    jc_command()
+    jcz_command()
         .arg("-d")
         .arg(&compressed_file)
         .assert()
@@ -280,7 +280,7 @@ fn test_tgz_verify_is_gzip_compressed() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg(&test_file)
@@ -302,7 +302,7 @@ fn test_tbz2_verify_is_bzip2_compressed() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg(&test_file)
@@ -324,7 +324,7 @@ fn test_txz_verify_is_xz_compressed() {
     let temp_dir = TempDir::new().unwrap();
     let test_file = create_test_file(temp_dir.path(), "test.txt", TEST_DATA_SMALL);
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg(&test_file)
@@ -354,7 +354,7 @@ fn test_compound_formats_preserve_originals() {
     let original_content = read_file(&test_file);
 
     // Test TGZ
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg(&test_file)
@@ -363,7 +363,7 @@ fn test_compound_formats_preserve_originals() {
     assert_eq!(read_file(&test_file), original_content);
 
     // Test TBZ2
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg(&test_file)
@@ -372,7 +372,7 @@ fn test_compound_formats_preserve_originals() {
     assert_eq!(read_file(&test_file), original_content);
 
     // Test TXZ
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg(&test_file)
@@ -390,7 +390,7 @@ fn test_tgz_compress_multiple_files_with_archive_flag() {
     let file2 = create_test_file(temp_dir.path(), "file2.txt", b"Content 2");
     let file3 = create_test_file(temp_dir.path(), "file3.txt", b"Content 3");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-A")
@@ -421,7 +421,7 @@ fn test_tbz2_compress_multiple_files_with_archive_flag() {
     let file2 = create_test_file(temp_dir.path(), "file2.txt", b"Content 2");
     let file3 = create_test_file(temp_dir.path(), "file3.txt", b"Content 3");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tbz2")
         .arg("-A")
@@ -452,7 +452,7 @@ fn test_txz_compress_multiple_files_with_archive_flag() {
     let file2 = create_test_file(temp_dir.path(), "file2.txt", b"Content 2");
     let file3 = create_test_file(temp_dir.path(), "file3.txt", b"Content 3");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg("-A")
@@ -494,7 +494,7 @@ fn test_multiple_files_archive_with_destination_directory() {
     let file2 = create_test_file(&source_dir, "b.txt", b"Content B");
     let file3 = create_test_file(&source_dir, "c.txt", b"Content C");
 
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("txz")
         .arg("-A")
@@ -522,7 +522,7 @@ fn test_multiple_files_archive_can_be_extracted() {
     let file3 = create_test_file(temp_dir.path(), "file3.txt", b"Content 3");
 
     // Create archive
-    jc_command()
+    jcz_command()
         .arg("-c")
         .arg("tgz")
         .arg("-A")
