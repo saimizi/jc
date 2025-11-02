@@ -238,13 +238,6 @@ impl MultiFileCompressor for TarCompressor {
             return Err(JcError::NoInputFiles);
         }
 
-        let mut output_path = PathBuf::from(output_name);
-        if !output_path.extension().map_or(false, |e| e == "tar") {
-            output_path.set_extension("tar");
-        }
-
-        info!("Creating multi-file TAR archive: {}", output_path.display());
-
         // Get the common parent directory from the first input
         let parent_dir = inputs[0]
             .parent()
@@ -261,6 +254,16 @@ impl MultiFileCompressor for TarCompressor {
                 ));
             }
         }
+
+        // Create output path in the parent directory (temp staging directory)
+        // This ensures the intermediate TAR file is created in the same isolated
+        // temp directory as the input files, avoiding race conditions in tests
+        let mut output_path = parent_dir.join(output_name);
+        if !output_path.extension().map_or(false, |e| e == "tar") {
+            output_path.set_extension("tar");
+        }
+
+        info!("Creating multi-file TAR archive: {}", output_path.display());
 
         let mut cmd = Command::new("tar");
         cmd.arg("-C").arg(parent_dir);
