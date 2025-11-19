@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use crate::compressors::create_compressor;
 use crate::core::config::CompressionConfig;
+use crate::core::config::TimestampOption;
 use crate::core::error::JcResult;
 use crate::core::types::CompoundFormat;
 use crate::utils::{debug, info, remove_file_silent};
@@ -29,12 +30,15 @@ pub fn compress_compound(
         force: config.force,
     };
 
+    // Remove timestamp to avoid duplication
+    let new_config = config.clone().with_timestamp(TimestampOption::None);
+
     let tar_output = tar_compressor.compress(input, &tar_config)?;
     debug!("Created intermediate TAR: {}", tar_output.display());
 
     // Step 2: Compress TAR with secondary compressor
     let secondary_compressor = create_compressor(format.secondary());
-    let secondary_output = secondary_compressor.compress(&tar_output, config)?;
+    let secondary_output = secondary_compressor.compress(&tar_output, &new_config)?;
 
     // Step 3: Remove intermediate TAR file
     if let Err(e) = remove_file_silent(&tar_output) {
