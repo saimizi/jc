@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::compressors::{create_compressor, tar::TarCompressor};
 use crate::core::compressor::{Compressor, MultiFileCompressor};
-use crate::core::config::{CollectionConfig, CollectionMode, CompressionConfig};
+use crate::core::config::{CollectionConfig, CollectionMode, CompressionConfig, TimestampOption};
 use crate::core::error::{JcError, JcResult};
 use crate::core::types::CompoundFormat;
 use crate::utils::{copy_recursive, create_temp_dir, debug, info, move_file, remove_file_silent};
@@ -114,7 +114,13 @@ pub fn collect_and_compress(
     // Apply secondary compression
     let final_output = if format.secondary() != format.primary() {
         let secondary_compressor = create_compressor(format.secondary());
-        let compressed = secondary_compressor.compress(&tar_filename, &collection_config.base)?;
+
+        // Remove timestamp to avoid duplication
+        let new_config = collection_config
+            .base
+            .clone()
+            .with_timestamp(TimestampOption::None);
+        let compressed = secondary_compressor.compress(&tar_filename, &new_config)?;
 
         // Remove intermediate TAR
         let _ = remove_file_silent(&tar_filename);
